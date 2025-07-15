@@ -12,11 +12,16 @@ import hashlib
 import base64
 import time
 import uuid
+import tempfile
 
 load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
+
+app.config['SESSION_PERMANENT'] = True
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['PERMANENT_SESSION_LIFETIME'] = 3600
 
 EDGE_CONFIG_TOKEN = os.getenv("EDGE_KEY")
 EDGE_CONFIG_BASE_URL = "https://edge-config.vercel.com/v1"
@@ -44,10 +49,16 @@ def generate_session_id():
     return str(uuid.uuid4())[:8]
 
 
+def get_temp_dir():
+    """Get a consistent temporary directory"""
+    temp_dir = tempfile.gettempdir()
+    return temp_dir
+
+
 def cleanup_old_files():
     """Clean up old temporary files (older than 10 minutes)"""
     try:
-        tmp_folder = '/tmp'
+        tmp_folder = get_temp_dir()
         current_time = time.time()
 
         for filename in os.listdir(tmp_folder):
@@ -64,6 +75,7 @@ def get_from_edge_config(key):
     """Retrieve data from Vercel Edge Config"""
     try:
         if not EDGE_CONFIG_TOKEN:
+            print("No Edge Config token found")
             return None
 
         headers = {
@@ -79,7 +91,12 @@ def get_from_edge_config(key):
 
         if response.status_code == 200:
             return response.json()
-        return None
+        elif response.status_code == 404:
+            print(f"Cache key {key} not found")
+            return None
+        else:
+            print(f"Edge Config error: {response.status_code} - {response.text}")
+            return None
     except Exception as e:
         print(f"Error retrieving from Edge Config: {e}")
         return None
@@ -89,6 +106,7 @@ def save_to_edge_config(key, data):
     """Save data to Vercel Edge Config"""
     try:
         if not EDGE_CONFIG_TOKEN:
+            print("No Edge Config token found")
             return False
 
         headers = {
@@ -105,7 +123,12 @@ def save_to_edge_config(key, data):
             timeout=10
         )
 
-        return response.status_code in [200, 201]
+        if response.status_code in [200, 201]:
+            print(f"Successfully saved cache key: {key}")
+            return True
+        else:
+            print(f"Failed to save to Edge Config: {response.status_code} - {response.text}")
+            return False
     except Exception as e:
         print(f"Error saving to Edge Config: {e}")
         return False
@@ -115,7 +138,10 @@ def image_to_base64(image_path):
     """Convert image file to base64 string"""
     try:
         with open(image_path, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode('utf-8')
+            image_data = image_file.read()
+            base64_str = base64.b64encode(image_data).decode('utf-8')
+            print(f"Image converted to base64, size: {len(base64_str)} chars")
+            return base64_str
     except Exception as e:
         print(f"Error converting image to base64: {e}")
         return None
@@ -124,10 +150,23 @@ def image_to_base64(image_path):
 def base64_to_image(base64_string, output_path):
     """Convert base64 string back to image file"""
     try:
+        if not base64_string:
+            print("Empty base64 string")
+            return False
+
         image_data = base64.b64decode(base64_string)
+
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
         with open(output_path, "wb") as image_file:
             image_file.write(image_data)
-        return True
+
+        if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+            print(f"Successfully created image at: {output_path}")
+            return True
+        else:
+            print(f"Failed to create image at: {output_path}")
+            return False
     except Exception as e:
         print(f"Error converting base64 to image: {e}")
         return False
@@ -200,6 +239,30 @@ def create_wallpaper(img, target_width, target_height):
     return final_img
 
 
+def ensure_image_exists(session_id, cache_key=None):
+    """Ensure the image file exists, recreate from cache if necessary"""
+    temp_dir = get_temp_dir()
+    expected_path = os.path.join(temp_dir, f'image_converted_{session_id}.png')
+
+    if os.path.exists(expected_path) and os.path.getsize(expected_path) > 0:
+        print(f"Image file exists at: {expected_path}")
+        return expected_path
+
+    if cache_key:
+        print(f"Attempting to recreate image from cache: {cache_key}")
+        cached_data = get_from_edge_config(cache_key)
+        if cached_data and 'image_base64' in cached_data:
+            success = base64_to_image(cached_data['image_base64'], expected_path)
+            if success:
+                print("Successfully recreated image from cache")
+                return expected_path
+            else:
+                print("Failed to recreate image from cache")
+
+    print(f"Image not found and couldn't be recreated: {expected_path}")
+    return None
+
+
 @app.route('/', methods=["POST", "GET"])
 def main_page():
     if request.method == "GET":
@@ -220,6 +283,9 @@ def main_page():
         try:
             session_id = generate_session_id()
             session['session_id'] = session_id
+            session.permanent = True
+
+            print(f"Generated session ID: {session_id}")
 
             response = requests.get(img_address, timeout=15)
             html_content = response.text
@@ -233,10 +299,15 @@ def main_page():
                     img_src = img_tag["content"]
                     title = title_tag["content"]
 
-                    cache_key = generate_cache_key(img_src, device_type, target_width, target_height)
+                    print(f"Found image: {img_src}")
+                    print(f"Found title: {title}")
 
-                    converted_path = f'/tmp/image_converted_{session_id}.png'
-                    target_path = f'/tmp/target_img_{session_id}.png'
+                    cache_key = generate_cache_key(img_src, device_type, target_width, target_height)
+                    print(f"Generated cache key: {cache_key}")
+
+                    temp_dir = get_temp_dir()
+                    converted_path = os.path.join(temp_dir, f'image_converted_{session_id}.png')
+                    target_path = os.path.join(temp_dir, f'target_img_{session_id}.png')
 
                     cached_data = get_from_edge_config(cache_key)
 
@@ -253,18 +324,28 @@ def main_page():
                             session['image_path'] = converted_path
                             session['from_cache'] = True
 
+                            print("Successfully loaded from cache, redirecting...")
                             return redirect('/create')
+                        else:
+                            print("Failed to load from cache, generating new...")
 
                     print("Generating new wallpaper...")
                     img_response = requests.get(img_src, timeout=15)
+
+                    if img_response.status_code != 200:
+                        raise Exception(f"Failed to download image: {img_response.status_code}")
+
                     img = Image.open(BytesIO(img_response.content))
+                    print(f"Original image size: {img.size}")
 
                     img.save(target_path)
+                    print(f"Saved original image to: {target_path}")
 
                     final_img = create_wallpaper(img, target_width, target_height)
                     final_img.save(converted_path)
+                    print(f"Created wallpaper at: {converted_path}")
 
-                    if not os.path.exists(converted_path):
+                    if not os.path.exists(converted_path) or os.path.getsize(converted_path) == 0:
                         raise Exception("Failed to create wallpaper image")
 
                     try:
@@ -296,15 +377,17 @@ def main_page():
                     session['image_path'] = converted_path
                     session['from_cache'] = False
 
+                    print("Session data stored, redirecting to create page...")
                     return redirect('/create')
                 else:
                     flash('Unable to retrieve NFT details. Please check the link and try again.', 'error')
                     return render_template('index.html')
             else:
-                flash('Unable to retrieve NFT details. Please check the link and try again.', 'error')
+                flash(f'Unable to retrieve NFT details. HTTP {response.status_code}', 'error')
                 return render_template('index.html')
 
         except Exception as e:
+            print(f"Error in main_page: {str(e)}")
             flash(f'An error occurred: {str(e)}', 'error')
             return render_template('index.html')
 
@@ -314,6 +397,7 @@ def get_image(filename):
     """Serve images from session-specific files"""
     session_id = session.get('session_id')
     if not session_id:
+        print("No session ID found")
         return "Session expired", 404
 
     if filename == 'image_converted.png':
@@ -321,12 +405,23 @@ def get_image(filename):
     else:
         actual_filename = filename
 
-    file_path = f'/tmp/{actual_filename}'
+    temp_dir = get_temp_dir()
+    file_path = os.path.join(temp_dir, actual_filename)
+
+    print(f"Looking for image at: {file_path}")
 
     if not os.path.exists(file_path):
+        print(f"Image not found, attempting to recreate...")
+        cache_key = session.get('cache_key')
+        if cache_key:
+            image_path = ensure_image_exists(session_id, cache_key)
+            if image_path:
+                return send_from_directory(temp_dir, actual_filename)
+
+        print("Could not find or recreate image")
         return "Image not found", 404
 
-    return send_from_directory('/tmp', actual_filename)
+    return send_from_directory(temp_dir, actual_filename)
 
 
 @app.route('/cached-image/<cache_key>')
@@ -337,7 +432,8 @@ def get_cached_image(cache_key):
 
         if cached_data and 'image_base64' in cached_data:
             session_id = session.get('session_id', 'temp')
-            temp_path = f'/tmp/cached_{session_id}_{cache_key}.png'
+            temp_dir = get_temp_dir()
+            temp_path = os.path.join(temp_dir, f'cached_{session_id}_{cache_key}.png')
             success = base64_to_image(cached_data['image_base64'], temp_path)
 
             if success:
@@ -352,30 +448,23 @@ def get_cached_image(cache_key):
 @app.route('/create', methods=["POST", "GET"])
 def create_page():
     if request.method == "GET":
+        print(f"Session data: {dict(session)}")
+
         required_keys = ['title', 'img_src', 'session_id']
-        for key in required_keys:
-            if key not in session:
-                flash('Session expired. Please generate a new wallpaper.', 'error')
-                return redirect(url_for('main_page'))
+        missing_keys = [key for key in required_keys if key not in session]
+
+        if missing_keys:
+            print(f"Missing session keys: {missing_keys}")
+            flash('Session expired. Please generate a new wallpaper.', 'error')
+            return redirect(url_for('main_page'))
 
         session_id = session.get('session_id')
-        expected_path = f'/tmp/image_converted_{session_id}.png'
+        cache_key = session.get('cache_key')
 
-        if not os.path.exists(expected_path):
-            cache_key = session.get('cache_key')
-            if cache_key:
-                cached_data = get_from_edge_config(cache_key)
-                if cached_data and 'image_base64' in cached_data:
-                    success = base64_to_image(cached_data['image_base64'], expected_path)
-                    if not success:
-                        flash('Unable to load wallpaper. Please generate a new one.', 'error')
-                        return redirect(url_for('main_page'))
-                else:
-                    flash('Wallpaper not found. Please generate a new one.', 'error')
-                    return redirect(url_for('main_page'))
-            else:
-                flash('Wallpaper not found. Please generate a new one.', 'error')
-                return redirect(url_for('main_page'))
+        image_path = ensure_image_exists(session_id, cache_key)
+        if not image_path:
+            flash('Unable to load wallpaper. Please generate a new one.', 'error')
+            return redirect(url_for('main_page'))
 
         return render_template('create.html',
                                img_src=session['img_src'],
@@ -394,23 +483,12 @@ def download_page():
         flash('Session expired. Please generate a new wallpaper.', 'error')
         return redirect(url_for('main_page'))
 
-    path = f"/tmp/image_converted_{session_id}.png"
+    cache_key = session.get('cache_key')
+    image_path = ensure_image_exists(session_id, cache_key)
 
-    if not os.path.exists(path):
-        cache_key = session.get('cache_key')
-        if cache_key:
-            cached_data = get_from_edge_config(cache_key)
-            if cached_data and 'image_base64' in cached_data:
-                success = base64_to_image(cached_data['image_base64'], path)
-                if not success:
-                    flash('No wallpaper found. Please generate a new one.', 'error')
-                    return redirect(url_for('main_page'))
-            else:
-                flash('No wallpaper found. Please generate a new one.', 'error')
-                return redirect(url_for('main_page'))
-        else:
-            flash('No wallpaper found. Please generate a new one.', 'error')
-            return redirect(url_for('main_page'))
+    if not image_path:
+        flash('No wallpaper found. Please generate a new one.', 'error')
+        return redirect(url_for('main_page'))
 
     device_type = session.get('device_type', 'wallpaper')
     title = session.get('title', 'nft_wallpaper')
@@ -419,7 +497,42 @@ def download_page():
 
     filename = f"{clean_title}_{device_type}_wallpaper.png"
 
-    return send_file(path, as_attachment=True, download_name=filename)
+    return send_file(image_path, as_attachment=True, download_name=filename)
+
+
+@app.route('/debug')
+def debug_page():
+    """Debug endpoint to check session and file status"""
+    session_id = session.get('session_id')
+    temp_dir = get_temp_dir()
+
+    debug_info = {
+        'session_id': session_id,
+        'session_data': dict(session),
+        'temp_dir': temp_dir,
+        'files': []
+    }
+
+    if session_id:
+        expected_path = os.path.join(temp_dir, f'image_converted_{session_id}.png')
+        debug_info['expected_path'] = expected_path
+        debug_info['file_exists'] = os.path.exists(expected_path)
+        if os.path.exists(expected_path):
+            debug_info['file_size'] = os.path.getsize(expected_path)
+
+    try:
+        for filename in os.listdir(temp_dir):
+            if filename.startswith(('image_converted_', 'target_img_', 'cached_')):
+                file_path = os.path.join(temp_dir, filename)
+                debug_info['files'].append({
+                    'filename': filename,
+                    'size': os.path.getsize(file_path),
+                    'modified': os.path.getmtime(file_path)
+                })
+    except Exception as e:
+        debug_info['list_error'] = str(e)
+
+    return jsonify(debug_info)
 
 
 if __name__ == '__main__':

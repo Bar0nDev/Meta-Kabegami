@@ -12,6 +12,40 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .image-error {
+            background-color: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            font-size: 14px;
+            min-height: 200px;
+        }
+
+        .preview-status {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
 </head>
 <body>
     <div class="main-container">
@@ -36,7 +70,7 @@
                     {% if messages %}
                         <div class="flash-messages mb-4">
                             {% for category, message in messages %}
-                                <div class="alert alert-{{ category }}">
+                                <div class="alert alert-{{ 'danger' if category == 'error' else category }}">
                                     {{ message }}
                                 </div>
                             {% endfor %}
@@ -49,12 +83,17 @@
                         <div class="preview-section">
                             <h2 class="section-title">Preview</h2>
                             <div class="iphone-container">
-                                <div class="iphone-x" style="background-image: url('{% if cache_key %}{{ url_for('get_cached_image', cache_key=cache_key) }}{% else %}{{ url_for('get_image', filename='image_converted.png') }}{% endif %}?t={{ time_now }}');">
+                                <div class="iphone-x" id="preview-container">
+                                    <div class="loading-spinner" id="loading-spinner"></div>
+                                    <div class="image-error" id="error-message" style="display: none;">
+                                        ⚠️ Unable to load preview
+                                    </div>
                                     <i></i>
                                     <b></b>
                                     <s>10:24</s>
                                 </div>
                             </div>
+                            <div class="preview-status" id="preview-status">Loading wallpaper...</div>
                         </div>
                     </div>
 
@@ -118,29 +157,102 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Add error handling for image loading
         document.addEventListener('DOMContentLoaded', function() {
-            const previewImage = document.querySelector('.iphone-x');
-            const originalBg = previewImage.style.backgroundImage;
+            const previewContainer = document.getElementById('preview-container');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const errorMessage = document.getElementById('error-message');
+            const previewStatus = document.getElementById('preview-status');
 
-            // Create a test image to check if the background image loads
-            const testImg = new Image();
-            testImg.onload = function() {
-                console.log('Wallpaper loaded successfully');
-            };
-            testImg.onerror = function() {
-                console.log('Failed to load wallpaper, attempting fallback...');
-                // Fallback to regular image serving if cached image fails
+            // Multiple image URLs to try
+            const imageUrls = [
+                // Try cached image first if available
                 {% if cache_key %}
-                previewImage.style.backgroundImage = "url('{{ url_for('get_image', filename='image_converted.png') }}?t={{ time_now }}')";
+                "{{ url_for('get_cached_image', cache_key=cache_key) }}?t={{ time_now }}",
                 {% endif %}
-            };
+                // Fallback to regular image
+                "{{ url_for('get_image', filename='image_converted.png') }}?t={{ time_now }}",
+                // Additional fallback with different timestamp
+                "{{ url_for('get_image', filename='image_converted.png') }}?t=" + Date.now()
+            ];
 
-            // Extract URL from background-image CSS property
-            const bgUrl = originalBg.match(/url\(['"]?([^'"]+)['"]?\)/);
-            if (bgUrl && bgUrl[1]) {
-                testImg.src = bgUrl[1];
+            let currentUrlIndex = 0;
+
+            function tryLoadImage(url) {
+                return new Promise((resolve, reject) => {
+                    const testImg = new Image();
+                    testImg.onload = function() {
+                        resolve(url);
+                    };
+                    testImg.onerror = function() {
+                        reject(new Error('Failed to load image: ' + url));
+                    };
+                    testImg.src = url;
+                });
             }
+
+            function loadImageWithFallback() {
+                if (currentUrlIndex >= imageUrls.length) {
+                    // All URLs failed
+                    loadingSpinner.style.display = 'none';
+                    errorMessage.style.display = 'flex';
+                    previewStatus.textContent = 'Failed to load wallpaper';
+                    previewStatus.style.color = '#dc3545';
+                    return;
+                }
+
+                const currentUrl = imageUrls[currentUrlIndex];
+                console.log('Attempting to load:', currentUrl);
+
+                tryLoadImage(currentUrl)
+                    .then(url => {
+                        // Success - set background image
+                        previewContainer.style.backgroundImage = `url('${url}')`;
+                        loadingSpinner.style.display = 'none';
+                        previewStatus.textContent = 'Wallpaper loaded successfully';
+                        previewStatus.style.color = '#28a745';
+                        console.log('Successfully loaded:', url);
+                    })
+                    .catch(error => {
+                        console.warn('Failed to load image:', error.message);
+                        currentUrlIndex++;
+                        // Try next URL after a short delay
+                        setTimeout(loadImageWithFallback, 500);
+                    });
+            }
+
+            // Start loading process
+            loadImageWithFallback();
+
+            // Add click handler for retry
+            errorMessage.addEventListener('click', function() {
+                errorMessage.style.display = 'none';
+                loadingSpinner.style.display = 'block';
+                previewStatus.textContent = 'Retrying...';
+                previewStatus.style.color = '#666';
+                currentUrlIndex = 0;
+                loadImageWithFallback();
+            });
+
+            // Debug information
+            console.log('Available image URLs:', imageUrls);
+            console.log('Cache key:', '{{ cache_key }}');
+            console.log('From cache:', {{ from_cache|lower }});
+        });
+
+        // Add retry functionality for failed downloads
+        document.querySelector('.btn-download').addEventListener('click', function(e) {
+            const button = this;
+            const originalText = button.innerHTML;
+
+            // Show loading state
+            button.innerHTML = '<span>⏳</span> Preparing download...';
+            button.disabled = true;
+
+            // Reset button after 3 seconds
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }, 3000);
         });
     </script>
 </body>
