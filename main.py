@@ -160,7 +160,7 @@ def main_page():
 
 @app.route('/image/<filename>')
 def get_image(filename):
-    return send_from_directory('/tmp', filename)
+    return send_from_directory('tmp', filename)
 
 
 @app.route('/create', methods=["POST", "GET"])
