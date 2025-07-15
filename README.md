@@ -1,14 +1,13 @@
 # Meta Kabegami - NFT Wallpaper Generator
 ![An image of the Meta Kabegami logo.](static/images/banner.png)
 
-Meta Kabegami is a tool that allows you to generate wallpapers from your favorite NFTs. By providing the URL of an NFT on OpenSea, you can easily create a personalized wallpaper. Due to OpenSea access limitations, this tool needs to be downloaded and run locally on your machine.
+Meta Kabegami is a tool that allows you to generate wallpapers from your favorite NFTs. By providing the URL of an NFT on Rarible, you can easily create a personalized wallpaper!
 
 ## Features
 ![An image of the wallpapers generated from the program.](static/images/example.png)
-- Generate wallpapers from NFTs listed on OpenSea.
+- Generate wallpapers from NFTs listed on Rarible.
 - Easy-to-use interface: just copy the NFT's URL and paste it into the field.
-- Opt to send wallpapers by email or download files locally.
-- Download and run the program locally.
+- Download files locally.
 
 
 ## Requirements
@@ -73,17 +72,17 @@ Meta Kabegami is a tool that allows you to generate wallpapers from your favorit
     ```
 
 2. **Generate Wallpaper:**
-    - Go to the specific page of the NFT on OpenSea.
+    - Go to the specific page of the NFT on Rarible.
     - Copy the URL of the NFT.
     - Paste the URL into the field provided in the program.
     - Follow the on-screen instructions to generate and download your wallpaper.
 
 ## Example
 
-1. Navigate to your favorite NFT on OpenSea.
-2. Copy the URL of the NFT (e.g., `https://opensea.io/assets/ethereum/0x.../1234`).
+1. Navigate to your favorite NFT on Rarible.
+2. Copy the URL of the NFT (e.g., `https://rarible.com/token/0xfd1b0b0dfa524e1fd42e7d51155a663c581bbd50:9655`).
 3. Run the program and paste the URL when prompted.
-4. Download or email your personalized NFT wallpaper.
+4. Download your personalized NFT wallpaper.
 
 ## Contributing
 
