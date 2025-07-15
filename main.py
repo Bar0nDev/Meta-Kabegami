@@ -138,7 +138,7 @@ def main_page():
 
                     final_img = create_wallpaper(img, target_width, target_height)
 
-                    final_img.save('/tmp/image_converted.png')
+                    final_img.save('static/tmp/image_converted.png')
 
                     session['title'] = title
                     session['img_src'] = img_src
