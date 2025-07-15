@@ -160,7 +160,8 @@ def main_page():
 
 @app.route('/image/<filename>')
 def get_image(filename):
-    return send_from_directory('tmp', filename)
+    print("Available files in /tmp:", os.listdir('/tmp'))
+    return send_from_directory('/tmp', filename)
 
 
 @app.route('/create', methods=["POST", "GET"])
@@ -194,23 +195,6 @@ def download_page():
 
     return send_file(path, as_attachment=True, download_name=filename)
 
-import os
-from flask import Response
-
-@app.route('/debug/fs')
-def debug_filesystem():
-    output = []
-
-    for root, dirs, files in os.walk("/", topdown=True):
-        if any(ignored in root for ignored in ["proc", "dev", "sys", "mnt", "media"]):
-            continue
-
-        indent = "  " * root.count(os.sep)
-        output.append(f"{indent}{root}/")
-        for f in files:
-            output.append(f"{indent}  - {f}")
-
-    return Response("\n".join(output), mimetype="text/plain")
 
 if __name__ == '__main__':
     app.run(debug=True)
