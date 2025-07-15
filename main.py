@@ -97,7 +97,7 @@ def create_wallpaper(img, target_width, target_height):
 @app.route('/', methods=["POST", "GET"])
 def main_page():
     if request.method == "GET":
-        tmp_folder = 'tmp'
+        tmp_folder = '/tmp'
         try:
             for filename in os.listdir(tmp_folder):
                 file_path = os.path.join(tmp_folder, filename)
@@ -134,11 +134,11 @@ def main_page():
                     img_response = requests.get(img_src)
                     img = Image.open(BytesIO(img_response.content))
 
-                    img.save("tmp/target_img.png")
+                    img.save("/tmp/target_img.png")
 
                     final_img = create_wallpaper(img, target_width, target_height)
 
-                    final_img.save('tmp/image_converted.png')
+                    final_img.save('/tmp/image_converted.png')
 
                     session['title'] = title
                     session['img_src'] = img_src
@@ -160,7 +160,7 @@ def main_page():
 
 @app.route('/image/<filename>')
 def get_image(filename):
-    return send_from_directory('tmp', filename)
+    return send_from_directory('/tmp', filename)
 
 
 @app.route('/create', methods=["POST", "GET"])
@@ -180,7 +180,7 @@ def create_page():
 
 @app.route('/download')
 def download_page():
-    path = "tmp/image_converted.png"
+    path = "/tmp/image_converted.png"
     if not os.path.exists(path):
         flash('No wallpaper found. Please generate a new one.', 'error')
         return redirect(url_for('main_page'))
