@@ -6,12 +6,12 @@ from bs4 import BeautifulSoup
 from curl_cffi import requests
 from io import BytesIO
 import os
-import base64
 
 load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
+
 
 DEVICE_SIZES = {
     'iphone_14_pro': (1179, 2556),
@@ -54,11 +54,14 @@ def create_wallpaper(img, target_width, target_height):
     else:
         cropped_img = img
 
+
     main_img_height = int(target_height * 0.7)
     gradient_height = target_height - main_img_height
 
     resized_img = ImageOps.fit(cropped_img, size=(target_width, main_img_height))
+
     final_img = Image.new('RGB', (target_width, target_height), color=palette_rgb)
+
     final_img.paste(resized_img, (0, gradient_height))
 
     for y in range(gradient_height):
@@ -73,6 +76,7 @@ def create_wallpaper(img, target_width, target_height):
 
         draw = ImageDraw.Draw(final_img)
         draw.line([(0, y), (target_width, y)], fill=blended_color)
+
 
     seam_y = gradient_height
     blur_zone_height = min(150, gradient_height // 3)
@@ -90,20 +94,17 @@ def create_wallpaper(img, target_width, target_height):
     return final_img
 
 
-def image_to_base64(image):
-    """Convert PIL image to base64 string"""
-    buffered = BytesIO()
-    image.save(buffered, format="PNG")
-    img_str = base64.b64encode(buffered.getvalue()).decode()
-    return f"data:image/png;base64,{img_str}"
-
-
 @app.route('/', methods=["POST", "GET"])
 def main_page():
     if request.method == "GET":
-        session.pop('wallpaper_base64', None)
-        session.pop('title', None)
-        session.pop('img_src', None)
+        tmp_folder = '/tmp'
+        try:
+            for filename in os.listdir(tmp_folder):
+                file_path = os.path.join(tmp_folder, filename)
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)
+        except Exception as e:
+            print(e)
         return render_template('index.html')
     else:
         img_address = request.form['pname']
@@ -133,11 +134,12 @@ def main_page():
                     img_response = requests.get(img_src)
                     img = Image.open(BytesIO(img_response.content))
 
+                    img.save("/tmp/target_img.png")
+
                     final_img = create_wallpaper(img, target_width, target_height)
 
-                    wallpaper_base64 = image_to_base64(final_img)
+                    final_img.save('/tmp/image_converted.png')
 
-                    session['wallpaper_base64'] = wallpaper_base64
                     session['title'] = title
                     session['img_src'] = img_src
                     session['device_type'] = device_type
@@ -156,10 +158,15 @@ def main_page():
             return render_template('index.html')
 
 
+@app.route('/image/<filename>')
+def get_image(filename):
+    return send_from_directory('/tmp', filename)
+
+
 @app.route('/create', methods=["POST", "GET"])
 def create_page():
     if request.method == "GET":
-        if 'title' not in session or 'img_src' not in session or 'wallpaper_base64' not in session:
+        if 'title' not in session or 'img_src' not in session:
             flash('Session expired. Please generate a new wallpaper.', 'error')
             return redirect(url_for('main_page'))
 
@@ -168,17 +175,15 @@ def create_page():
                                art_title=session['title'],
                                device_type=session.get('device_type', 'Unknown'),
                                dimensions=session.get('dimensions', 'Unknown'),
-                               wallpaper_base64=session['wallpaper_base64'])
+                               time_now=datetime.now().timestamp())
 
 
 @app.route('/download')
 def download_page():
-    if 'wallpaper_base64' not in session:
+    path = "/tmp/image_converted.png"
+    if not os.path.exists(path):
         flash('No wallpaper found. Please generate a new one.', 'error')
         return redirect(url_for('main_page'))
-
-    base64_str = session['wallpaper_base64'].split(',')[1]
-    img_data = base64.b64decode(base64_str)
 
     device_type = session.get('device_type', 'wallpaper')
     title = session.get('title', 'nft_wallpaper')
@@ -187,10 +192,7 @@ def download_page():
 
     filename = f"{clean_title}_{device_type}_wallpaper.png"
 
-    return send_file(BytesIO(img_data),
-                     as_attachment=True,
-                     download_name=filename,
-                     mimetype='image/png')
+    return send_file(path, as_attachment=True, download_name=filename)
 
 
 if __name__ == '__main__':
