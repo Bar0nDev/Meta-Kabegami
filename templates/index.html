@@ -6,104 +6,174 @@
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Meta Kabegami</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="static/css/styles.css">
     <link rel="icon" href="static/images/logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+128&family=Libre+Barcode+39+Text&display=swap&family=Libre+Barcode+39+Extended+Text&family=Major+Mono+Display&family=Nova+Square&family=Sedgwick+Ave+Display&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Sedgwick+Ave+Display&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
-<body class="bg-container">
-    <div class="loading-screen"><p class="loading-text">Loading...</p></div>
-    <div class="loading-screen" id="generate-screen" style="display: none;"><p class="loading-text">Cooking Up Your Wallpaper...</p></div>
+<body>
+    <div class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">Loading...</p>
+        </div>
+    </div>
+
+    <div class="loading-screen" id="generate-screen" style="display: none;">
+        <div class="loading-content">
+            <div class="loading-spinner cooking"></div>
+            <p class="loading-text">Cooking Up Your Wallpaper...</p>
+        </div>
+    </div>
+
     <div class="main-container">
         {% include 'navbar.html' %}
-        <div class="main-body container-fluid">
-            <div>
-                <div class="row">
-                    <div class="col-sm-4 col-md-12 col-lg-4">
-                        <div class="main-text">
-                            <h1 class="main-head-text">Meta Kabegami</h1>
-                            <h2 class="main-sub-text">An NFT Wallpaper Generator</h2>
+        <div class="floating-nfts">
+            <img src="static/images/NFT-images/Azuki-1.png" class="floating-nft" alt="Azuki NFT">
+            <img src="static/images/NFT-images/BAYC-1.png" class="floating-nft" alt="BAYC NFT">
+            <img src="static/images/NFT-images/Kitaro-1.png" class="floating-nft" alt="Kitaro NFT">
+            <img src="static/images/NFT-images/Azuki-2.png" class="floating-nft" alt="Azuki NFT">
+            <img src="static/images/NFT-images/BAYC-2.png" class="floating-nft" alt="BAYC NFT">
+            <img src="static/images/NFT-images/Kitaro-2.png" class="floating-nft" alt="Kitaro NFT">
+            <img src="static/images/NFT-images/Azuki-3.png" class="floating-nft" alt="Azuki NFT">
+            <img src="static/images/NFT-images/BAYC-3.png" class="floating-nft" alt="BAYC NFT">
+            <img src="static/images/NFT-images/Kitaro-3.png" class="floating-nft" alt="Kitaro NFT">
+            <img src="static/images/NFT-images/Kitaro-4.png" class="floating-nft" alt="Kitaro NFT">
+        </div>
+
+        <div class="hero-section">
+            <div class="container">
+                <div class="row align-items-center min-vh-100">
+                    <div class="col-lg-6">
+                        <div class="hero-content">
+                            <h1 class="hero-title">Meta Kabegami</h1>
+                            <p class="hero-subtitle">Transform your NFTs into stunning wallpapers</p>
+                            <p class="hero-description">
+                                Create beautiful, custom wallpapers from your favorite NFTs with our advanced image processing technology.
+                            </p>
                         </div>
                     </div>
-                    <div class="create-group col-sm-8 col-md-12 col-lg-8">
-                        <form action="{{ url_for('main_page') }}" method="POST" id="create-form">
-                            <div class="form-contents">
-                                <div class="nft-submit-text">
-                                    <p id="pname-label" class="nft-label">NFT Link 
-                                        <img src="static/images/Rarible.svg" alt="Rarible Icon" class="nft-icon">
-                                    </p>
+
+                    <div class="col-lg-6">
+                        <div class="form-card">
+                            <form action="{{ url_for('main_page') }}" method="POST" id="create-form">
+                                <div class="form-group">
+                                    <label for="pname" class="form-label">
+                                        <span class="label-text">NFT Link</span>
+                                        <span class="label-badge">Rarible</span>
+                                    </label>
+
+                                    {% with messages = get_flashed_messages(with_categories=true) %}
+                                        {% if messages %}
+                                            <div class="flash-messages">
+                                                {% for category, message in messages %}
+                                                    <div class="alert alert-{{ category }}">
+                                                        {{ message }}
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    {% endwith %}
+
+                                    <input type="text" id="pname" name="pname" placeholder="Paste your NFT URL here..." required>
                                 </div>
-                                {% with messages = get_flashed_messages(with_categories=true) %}
-                                    {% if messages %}
-                                        <div class="flash-messages">
-                                            {% for category, message in messages %}
-                                                <div class="alert alert-{{ category }}">
-                                                    {{ message }}
-                                                </div>
-                                            {% endfor %}
+
+                                <div class="form-group">
+                                    <label for="device" class="form-label">
+                                        <span class="label-text">Device Size</span>
+                                    </label>
+                                    <select id="device" name="device" class="form-select">
+                                        <option value="iphone_14_pro">iPhone 14 Pro (1179 × 2556)</option>
+                                        <option value="iphone_14">iPhone 14 (1170 × 2532)</option>
+                                        <option value="iphone_13_pro">iPhone 13 Pro (1170 × 2532)</option>
+                                        <option value="iphone_12_pro">iPhone 12 Pro (1170 × 2532)</option>
+                                        <option value="iphone_x" selected>iPhone X (1125 × 2436)</option>
+                                        <option value="samsung_s23">Samsung S23 (1080 × 2340)</option>
+                                        <option value="samsung_s22">Samsung S22 (1080 × 2340)</option>
+                                        <option value="pixel_7">Google Pixel 7 (1080 × 2400)</option>
+                                        <option value="custom">Custom Size</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group" id="custom-size" style="display: none;">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <label for="custom_width" class="form-label">Width (px)</label>
+                                            <input type="number" id="custom_width" name="custom_width" placeholder="1125">
                                         </div>
-                                    {% endif %}
-                                {% endwith %}
-                                <input type="text" id="pname" name="pname" placeholder="Paste NFT Image URL"><br>
-                                <div class="button-container">
-                                    <button type="submit" class="btn" role="button">Let It Cook</button>
+                                        <div class="col-6">
+                                            <label for="custom_height" class="form-label">Height (px)</label>
+                                            <input type="number" id="custom_height" name="custom_height" placeholder="2436">
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </form>
+
+                                <button type="submit" class="btn-primary">
+                                    <span class="btn-text">Generate Wallpaper</span>
+                                    <span class="btn-icon">→</span>
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="row footer">
-                <div class="logos col-sm-8">
-                    <div class="logos-slide">
-                        <img src="static/images/NFT-images/Azuki-1.png">
-                        <img src="static/images/NFT-images/BAYC-1.png">
-                        <img src="static/images/NFT-images/Kitaro-1.png">
-                        <img src="static/images/NFT-images/Azuki-2.png">
-                        <img src="static/images/NFT-images/BAYC-2.png">
-                        <img src="static/images/NFT-images/Kitaro-2.png">
-                        <img src="static/images/NFT-images/Azuki-3.png">
-                        <img src="static/images/NFT-images/BAYC-3.png">
-                        <img src="static/images/NFT-images/Kitaro-3.png">
-                        <img src="static/images/NFT-images/Kitaro-4.png">
+        <div class="features-section">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="feature-card">
+                            <div class="feature-icon">🎨</div>
+                            <h3>Smart Processing</h3>
+                            <p>Advanced algorithms create perfect wallpapers with seamless gradients</p>
+                        </div>
                     </div>
-                    <div class="logos-slide">
-                        <img src="static/images/NFT-images/Azuki-1.png">
-                        <img src="static/images/NFT-images/BAYC-1.png">
-                        <img src="static/images/NFT-images/Kitaro-1.png">
-                        <img src="static/images/NFT-images/Azuki-2.png">
-                        <img src="static/images/NFT-images/BAYC-2.png">
-                        <img src="static/images/NFT-images/Kitaro-2.png">
-                        <img src="static/images/NFT-images/Azuki-3.png">
-                        <img src="static/images/NFT-images/BAYC-3.png">
-                        <img src="static/images/NFT-images/Kitaro-3.png">
-                        <img src="static/images/NFT-images/Kitaro-4.png">
+                    <div class="col-md-4">
+                        <div class="feature-card">
+                            <div class="feature-icon">📱</div>
+                            <h3>Multiple Devices</h3>
+                            <p>Support for iPhone, Samsung, Pixel, and custom dimensions</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="feature-card">
+                            <div class="feature-icon">⚡</div>
+                            <h3>Instant Generation</h3>
+                            <p>Generate high-quality wallpapers in seconds</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
-    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
     <script>
-      $(document).ready(function () {
-        function hideLoadingScreen() {
+        $(document).ready(function () {
+            function hideLoadingScreen() {
                 $('.loading-screen').fadeOut('slow');
-              }
+            }
 
-        // Attach an event listener to the window's load event
-        $(window).on('load', function() {
-            setTimeout(hideLoadingScreen, 1000); // 1000 milliseconds delay
-        });
+            $(window).on('load', function() {
+                setTimeout(hideLoadingScreen, 1000);
+            });
 
-        $("#create-form").on("submit", function () {
-            $("#generate-screen").fadeIn('slow');
+            $("#create-form").on("submit", function () {
+                $("#generate-screen").fadeIn('slow');
+            });
+
+            $("#device").on("change", function() {
+                if ($(this).val() === "custom") {
+                    $("#custom-size").slideDown();
+                } else {
+                    $("#custom-size").slideUp();
+                }
+            });
         });
-      })
     </script>
 </body>
 </html>

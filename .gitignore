@@ -1,3 +1,4 @@
 .env
 drivers/chromedriver.exe
 env
+,venv

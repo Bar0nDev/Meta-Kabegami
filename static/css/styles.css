@@ -1,691 +1,1046 @@
+:root {
+  --primary-color: #00d4ff;
+  --primary-hover: #00b8e6;
+  --secondary-color: #8b5cf6;
+  --accent-color: #ff6b6b;
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --bg-primary: #000000;
+  --bg-secondary: #111111;
+  --bg-tertiary: #1a1a1a;
+  --border-color: #27272a;
+  --error-color: #ef4444;
+  --success-color: #22c55e;
+  --gradient-primary: linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%);
+  --gradient-secondary: linear-gradient(135deg, #ff6b6b 0%, #ffd93d 100%);
+  --gradient-dark: linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #111111 100%);
+  --gradient-card: linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(26, 26, 26, 0.6) 100%);
+  --glow-primary: 0 0 20px rgba(0, 212, 255, 0.3);
+  --glow-secondary: 0 0 20px rgba(139, 92, 246, 0.3);
+  --glass-bg: rgba(17, 17, 17, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-.alert {
-  padding: 15px;
-  margin-bottom: 20px;
-  border: 1px solid transparent;
-  border-radius: 4px;
-}
-
-.alert-error {
-  color: #a94442;
-  background-color: #f2dede;
-  border-color: #ebccd1;
-}
-
-.alert-success {
-  color: #3c763d;
-  background-color: #dff0d8;
-  border-color: #d6e9c6;
-}
-
-.art-title {
-    font-family: 'Montserrat', sans-serif;
-    font-weight: 400;
-    font-style: normal;
-    color: white;
-}
-
-/* .bg-container {
-  background-image: url('../images/kitaroCat.gif');
-  background-position: center;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-  position: relative;
-  z-index: 1;
-}
- */
-
 body {
-    background-color: black;
-    margin: 0;
-    padding: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--gradient-dark);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
-
-.btn-a {
-    text-align: center;
-    padding: 2%;
-    font-size: 1.5em;
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 40% 60%, rgba(255, 107, 107, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
 }
 
-.btn {
-    text-align: center;
-    background-color: #1111;
-    color: white;
-    font-family: 'Montserrat', sans-serif;
-    font-style: normal;
-    text-decoration: none;
-    font-size: 1em;
-    border: solid white;
+/* Floating NFT Background */
+.floating-nfts {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+  overflow: hidden;
 }
 
-.btn:hover {
-    background-color: white;
-    color: black;
+.floating-nft {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  opacity: 0.1;
+  animation: float 20s infinite linear;
+  box-shadow: 0 4px 20px rgba(0, 212, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
 }
 
-.button-container {
-  display: flex;
-  justify-content: flex-end;
+.floating-nft:hover {
+  opacity: 0.3;
+  transform: scale(1.1);
+  box-shadow: 0 8px 30px rgba(0, 212, 255, 0.4);
 }
 
-.button-row {
-    display: flex;
-    align-content: space-around;
-    justify-content: center;
+.floating-nft:nth-child(1) {
+  top: 10%;
+  left: 10%;
+  animation-delay: 0s;
+  animation-duration: 25s;
 }
 
-
-.create-body {
-    height: 80%;
+.floating-nft:nth-child(2) {
+  top: 20%;
+  right: 15%;
+  animation-delay: -5s;
+  animation-duration: 30s;
+  animation-direction: reverse;
 }
 
-.create-button {
-    width: 20%;
-    font-size: 1.25em;
-    border: 0;
-    background-color: #cccccc;
-    transition-duration: 0.4s;
-    font-family: "Sedgwick Ave", cursive;
-    font-weight: 400;
-    font-style: normal;
+.floating-nft:nth-child(3) {
+  top: 40%;
+  left: 5%;
+  animation-delay: -10s;
+  animation-duration: 35s;
 }
 
-.create-button:hover {
-    background-color: white;
-    color: black;
+.floating-nft:nth-child(4) {
+  top: 60%;
+  right: 20%;
+  animation-delay: -15s;
+  animation-duration: 28s;
+  animation-direction: reverse;
 }
 
-#create-form {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+.floating-nft:nth-child(5) {
+  top: 80%;
+  left: 20%;
+  animation-delay: -20s;
+  animation-duration: 32s;
 }
 
-.create-group {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+.floating-nft:nth-child(6) {
+  top: 30%;
+  right: 5%;
+  animation-delay: -25s;
+  animation-duration: 26s;
+  animation-direction: reverse;
 }
 
-.download-button {
-    font-family: 'Montserrat', sans-serif;
-    font-style: normal;
-    margin: 10% auto;
-    padding: 2.5%;
-    font-size: 1.25em;
-    border: 0;
-    background-color: #cccccc;
-    transition-duration: 0.4s;
+.floating-nft:nth-child(7) {
+  top: 50%;
+  left: 15%;
+  animation-delay: -30s;
+  animation-duration: 38s;
 }
 
-.download-button:hover {
-    background-color: white;
-    color: black;
+.floating-nft:nth-child(8) {
+  top: 70%;
+  right: 10%;
+  animation-delay: -35s;
+  animation-duration: 24s;
+  animation-direction: reverse;
 }
 
-
-.footer {
-  position:fixed;
-  bottom: 0;
-
+.floating-nft:nth-child(9) {
+  top: 15%;
+  left: 50%;
+  animation-delay: -40s;
+  animation-duration: 33s;
 }
 
-.form-contents {
-  width: 80%;
+.floating-nft:nth-child(10) {
+  top: 85%;
+  right: 40%;
+  animation-delay: -45s;
+  animation-duration: 29s;
+  animation-direction: reverse;
 }
 
-@keyframes slide {
-  from {
-    transform: translateX(0);
+@keyframes float {
+  0% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
   }
-  to {
-    transform: translateX(-100%);
+  25% {
+    transform: translateY(-20px) translateX(10px) rotate(2deg);
+  }
+  50% {
+    transform: translateY(-10px) translateX(-5px) rotate(-1deg);
+  }
+  75% {
+    transform: translateY(-30px) translateX(15px) rotate(1deg);
+  }
+  100% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
   }
 }
 
-
-.hidden {
-    visibility: hidden;
-}
-
-label, input{
-  display:flex;
-  flex-direction:column;
-}
-
+/* Loading Screen */
 .loading-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgb(0, 0, 0);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
 }
 
+.loading-content {
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 3px solid var(--bg-secondary);
+  border-top: 3px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+  box-shadow: var(--glow-primary);
+}
+
+.loading-spinner.cooking {
+  border-top-color: var(--accent-color);
+  box-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
+}
 
 .loading-text {
-    color: white;
-    font-size: 3em;
-    font-family: "Sedgwick Ave Display", cursive;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
 }
 
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 
-.logos {
-  overflow: hidden;
-  padding: 1% 0;
-  background: white;
-  white-space: nowrap;
+/* Navigation */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--glass-border);
+  position: fixed;
+  top: 0;
   width: 100%;
+  z-index: 1000;
+  transition: all 0.3s ease;
 }
 
-.logos-slide {
-  display: inline-block;
-  animation: 15s slide infinite linear;
+.navbar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.1), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-.logos-slide img {
-  height: 120px;
-  margin: 0 50px;
+.navbar:hover::before {
+  opacity: 1;
 }
 
-.main-body {
-  margin-top: 10%;
-  margin-bottom: 0;
-  margin-left: 0;
-  margin-right: 0;
+.nav-brand {
+  height: 40px;
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.3));
 }
 
-.main-container {
-  height: 100vh;
-}
-
-.main-text{
-    color: white;
-    margin: 5% 0 0 5%;
-}
-
-.main-head-text{
-    font-family: 'Sedgwick Ave Display', cursive;
-    font-size: 5em;
-    margin-top: 5%;
-}
-
-.main-sub-text{
-    font-family: 'Montserrat', sans-serif;
-    margin-top: 5%;
-    font-size: 1.5em;
-}
-
-.navbar{
-    display: flex;
-    justify-content: space-between;
-    height: 10%;
-    padding: 0 2.5%;
-}
-
-.nav-brand{
-    height: 100%;
+.nav-brand:hover {
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 15px rgba(0, 212, 255, 0.5));
 }
 
 .nav-text {
-    font-family: 'Libre Barcode 39 Text', system-ui;
-    color: white;
-    display: inline-block;
-    font-size: 200%;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
 }
 
-.nft-label {
-  display: inline-flex;
-  align-items: left;
-  gap: 5px;
+/* Main Container */
+.main-container {
+  padding-top: 80px;
 }
 
-.nft-icon {
-  width: 25px;
-  height: auto;
+/* Hero Section */
+.hero-section {
+  min-height: 100vh;
+  padding: 2rem 0;
+  display: flex;
+  align-items: center;
+  position: relative;
 }
 
-.nft-text {
-  white-space: nowrap;
+.hero-content {
+  padding-right: 2rem;
+  position: relative;
+  z-index: 2;
 }
 
-.nft-icon-wrapper {
-  display: inline-flex;
+.hero-title {
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.2;
+  text-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.1); }
+}
+
+.hero-subtitle {
+  font-size: 1.5rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+}
+
+.hero-description {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.05);
+}
+
+/* Form Card */
+.form-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: 2.5rem;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.form-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(0, 212, 255, 0.1), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  transform: rotate(45deg);
+}
+
+.form-card:hover::before {
+  opacity: 1;
+  animation: shimmer 2s infinite;
+}
+
+.form-card:hover {
+  transform: translateY(-5px);
+  box-shadow:
+    0 35px 60px -12px rgba(0, 0, 0, 0.9),
+    0 0 40px rgba(0, 212, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) rotate(45deg); }
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.1);
+}
+
+.label-text {
+  font-size: 0.95rem;
+}
+
+.label-badge {
+  background: var(--gradient-primary);
+  color: white;
+  padding: 0.2rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 212, 255, 0.3);
+}
+
+#pname, .form-select {
+  width: 100%;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+#pname:focus, .form-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow:
+    0 0 0 3px rgba(0, 212, 255, 0.1),
+    var(--glow-primary);
+  background: rgba(0, 0, 0, 0.8);
+}
+
+#pname::placeholder {
+  color: var(--text-muted);
+}
+
+.form-select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+#custom_width, #custom_height {
+  width: 100%;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+#custom_width:focus, #custom_height:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow:
+    0 0 0 3px rgba(0, 212, 255, 0.1),
+    var(--glow-primary);
+  background: rgba(0, 0, 0, 0.8);
+}
+
+/* Primary Button */
+.btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 1rem 2rem;
+  background: var(--gradient-primary);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.btn-primary:hover::before {
+  left: 100%;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 20px 40px -12px rgba(0, 212, 255, 0.4),
+    var(--glow-primary);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-icon {
+  font-size: 1.2rem;
+  transition: transform 0.3s ease;
+}
+
+.btn-primary:hover .btn-icon {
+  transform: translateX(4px);
+}
+
+/* Features Section */
+.features-section {
+  padding: 4rem 0;
+  background: var(--glass-bg);
+  border-top: 1px solid var(--glass-border);
+  backdrop-filter: blur(20px);
+}
+
+.feature-card {
+  text-align: center;
+  padding: 2rem;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  margin-bottom: 2rem;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--gradient-primary);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.feature-card:hover::before {
+  transform: scaleX(1);
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  background: rgba(26, 26, 26, 0.8);
+  box-shadow:
+    0 20px 40px -12px rgba(0, 0, 0, 0.8),
+    0 0 20px rgba(0, 212, 255, 0.1);
+}
+
+.feature-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.feature-card h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.feature-card p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Alert Styles */
+.alert {
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  backdrop-filter: blur(10px);
+}
+
+.alert-error {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
+}
+
+.alert-success {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #86efac;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.2);
+}
+
+/* Flash Messages */
+.flash-messages {
+  margin-bottom: 1.5rem;
+}
+
+/* Preview Section */
+.preview-section {
+  padding: 2rem;
+}
+
+.section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: var(--text-primary);
+  text-align: center;
+  text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+/* iPhone Preview Styles */
+.iphone-container {
+  height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.iphone-x {
+  position: relative;
+  width: 300px;
+  height: 600px;
+  background: var(--bg-secondary);
+  background-size: cover;
+  background-position: center;
+  border-radius: 30px;
+  box-shadow:
+    0 0 0 8px #0a0a0a,
+    0 0 0 10px #050505,
+    0 0 0 15px #000000,
+    0 25px 50px -12px rgba(0, 0, 0, 0.9),
+    0 0 30px rgba(0, 212, 255, 0.2);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.iphone-x:hover {
+  transform: scale(1.02);
+  box-shadow:
+    0 0 0 8px #0a0a0a,
+    0 0 0 10px #050505,
+    0 0 0 15px #000000,
+    0 30px 60px -12px rgba(0, 0, 0, 0.9),
+    0 0 40px rgba(0, 212, 255, 0.3);
+}
+
+.iphone-x::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 25px;
+  background: #0a0a0a;
+  border-radius: 0 0 20px 20px;
+  z-index: 10;
+}
+
+.iphone-x::after {
+  content: '';
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 4px;
+  background: #f2f2f2;
+  border-radius: 2px;
+  z-index: 10;
+}
+
+.iphone-x i {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20%;
+  height: 6px;
+  background: #000000;
+  border-radius: 3px;
+  z-index: 15;
+}
+
+.iphone-x b {
+  position: absolute;
+  top: 4px;
+  right: 20%;
+  width: 10px;
+  height: 10px;
+  background: #000000;
+  border-radius: 50%;
+  z-index: 15;
+}
+
+.iphone-x b::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 6px;
+  height: 6px;
+  background: #00d4ff;
+  border-radius: 50%;
+  box-shadow: 0 0 5px rgba(0, 212, 255, 0.5);
+}
+
+.iphone-x s {
+  position: absolute;
+  top: 40px;
+  width: 100%;
+  text-align: center;
+  font-size: 2rem;
+  color: white;
+  text-decoration: none;
+  z-index: 15;
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+}
+
+/* Create Page Styles */
+.create-body {
+  padding: 2rem 0;
+  min-height: calc(100vh - 80px);
 }
 
 .nft-info {
-    margin-bottom: 1.2%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
 }
 
+.nft-info-details {
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+}
 
-.preview-pane {
-    width: 100%;
-    height: 100%;
+.art-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 2rem;
+  color: var(--text-primary);
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+}
+
+.img-container {
+  margin-bottom: 2rem;
 }
 
 .src-img {
-    width: 50%;
-}
-
-#pname {
-  font-family: 'Montserrat', sans-serif;
-  background-color: black;
-  color: white;
-  border: 3px solid white;
+  max-width: 300px;
   width: 100%;
-  height: 3em;
-  margin: 2% 0;
-  padding-left: 2%;
+  border-radius: 16px;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.8),
+    0 0 20px rgba(0, 212, 255, 0.2);
+  transition: all 0.3s ease;
+  border: 1px solid var(--glass-border);
 }
 
-#pname-label {
-  font-family: 'Montserrat', sans-serif;
-  color: white;
-  font-size: 1.25em;
+.src-img:hover {
+  transform: scale(1.05);
+  box-shadow:
+    0 30px 60px -12px rgba(0, 0, 0, 0.9),
+    0 0 30px rgba(0, 212, 255, 0.3);
 }
 
-.iphone-container {
-    height: 80vh;
+/* Wallpaper Info Styles */
+.wallpaper-info {
+  margin-bottom: 2rem;
 }
 
-/* iPhone CSS */
-.iphone-x {
+.info-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow:
+    0 10px 30px -5px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
   position: relative;
-  margin: auto;
-  width: 360px;
-  height: 100%;
-  background-color: #7371ee;
-  background-image: url('/image/image_converted.png?timestamp={{ time_now }}');
-  background-size: cover;
-  border-radius: 40px;
-  box-shadow: 0px 0px 0px 11px #1f1f1f, 0px 0px 0px 13px #191919, 0px 0px 0px 20px #111;
-
-  &:before,
-  &:after{
-    content: '';
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-  &:after {
-    bottom: 7px;
-    width: 140px;
-    height: 4px;
-    background-color: #f2f2f2;
-    border-radius: 10px;
-  }
-
-  &:before {
-    top: 0px;
-    width: 56%;
-    height: 30px;
-    background-color: #1f1f1f;
-    border-radius: 0px 0px 40px 40px;
-  }
-
-  i,
-  b,
-  s,
-  span {
-    position: absolute;
-    display: block;
-    color: transparent;
-  }
-
-  i {
-    top: 0px;
-    left: 50%;
-    transform: translate(-50%, 6px);
-    height: 8px;
-    width: 15%;
-    background-color: #101010;
-    border-radius: 8px;
-    box-shadow: inset 0px -3px 3px 0px rgba(256, 256, 256, 0.2);
-  }
-
-  b {
-    left: 10%;
-    top: 0px;
-    transform: translate(180px, 4px);
-    width: 12px;
-    height: 12px;
-    background-color: #101010;
-    border-radius: 12px;
-    box-shadow: inset 0px -3px 2px 0px rgba(256, 256, 256, 0.2);
-
-    &:after {
-      content: '';
-      position: absolute;
-      background-color: #2d4d76;
-      width: 6px;
-      height: 6px;
-      top: 2px;
-      left: 2px;
-      top: 3px;
-      left: 3px;
-      display: block;
-      border-radius: 4px;
-      box-shadow: inset 0px -2px 2px rgba(0, 0, 0, 0.5);
-    }
-  }
-
-  s {
-    top: 50px;
-    color: #fff;
-    text-align: center;
-    text-decoration: none;
-    width: 100%;
-    font-size: 70px;
-    font-weight: 100;
-    padding-top: 60px;
-  }
-
-  span {
-    bottom: 50px;
-    width: 40px;
-    height: 40px;
-    background-color: rgba(0, 0, 0, 0.3);
-    border-radius: 50%;
-    left: 30px;
-
-    & + span {
-      left: auto;
-      right: 30px;
-    }
-  }
+  overflow: hidden;
 }
 
-@media (max-width: 1024px) {
-  .main-text {
-    margin-bottom: 5%;
-    margin-top: 0;
+.info-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: var(--gradient-primary);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.info-card:hover::before {
+  transform: scaleX(1);
+}
+
+.info-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 15px 40px -5px rgba(0, 0, 0, 0.6),
+    0 0 20px rgba(0, 212, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.info-card h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+  text-align: center;
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+
+.info-item:hover {
+  background: rgba(0, 0, 0, 0.6);
+  border-color: var(--glass-border);
+  box-shadow: 0 2px 8px rgba(0, 212, 255, 0.1);
+}
+
+.info-label {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.info-value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.button-row {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.btn-a {
+  text-decoration: none;
+  flex: 1;
+  max-width: 200px;
+}
+
+.btn {
+  padding: 0.75rem 2rem;
+  background: var(--glass-bg);
+  border: 2px solid var(--glass-border);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+.btn:hover::before {
+  left: 100%;
+}
+
+.btn:hover {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow:
+    0 10px 30px -5px rgba(0, 212, 255, 0.3),
+    var(--glow-primary);
+}
+
+.btn-download {
+  background: var(--gradient-primary);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+}
+
+.btn-download:hover {
+  background: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow:
+    0 15px 35px -5px rgba(0, 212, 255, 0.4),
+    var(--glow-primary);
+}
+
+.btn-home {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+}
+
+.btn-home:hover {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  box-shadow:
+    0 10px 30px -5px rgba(255, 107, 107, 0.3),
+    0 0 20px rgba(255, 107, 107, 0.2);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 2.5rem;
   }
 
-  .main-head-text {
-    font-size: 3em;
+  .hero-subtitle {
+    font-size: 1.2rem;
   }
 
-  .main-sub-text {
-    font-size: 1em;
-    margin-top: 0;
+  .form-card {
+    padding: 1.5rem;
   }
 
-  .create-group {
-    margin-top: 5%;
-  }
-
-  #create-form {
-    justify-content: flex-start;
-    margin-left: 5%;
-  }
-
-  .iphone-container {
-    width: 45vw;
-    height: 55vh;
+  .navbar {
+    padding: 1rem;
   }
 
   .iphone-x {
+    width: 250px;
+    height: 500px;
+  }
+
+  .button-row {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .btn-a {
+    max-width: none;
+  }
+
+  .btn {
     width: 100%;
-    height: 100%;
-    background-size: 100% 120%;
-    background-repeat: no-repeat;
-    background-position: bottom;
-    border-radius: 10%;
-    box-shadow: 0px 0px 0px 6px #1f1f1f, 0px 0px 0px 7px #191919, 0px 0px 0px 11px #111;
-  }
-
-  .iphone-x b {
-    transform: translate(130px, 4px);
-  }
-
-  .iphone-x s {
-    font-size: 3em;
-    padding-top: 0;
-  }
-
-  .iphone-x span {
-    bottom: 10%;
-    width: 14%;
-    height: 8%;
-  }
-
-  .iphone-col {
-    display: flex;
-    justify-content: center;
-  }
-
-  .nft-info-details {
-    margin-top: 10%;
   }
 
   .art-title {
-    font-size: 2em;
+    font-size: 2rem;
   }
 
-  .btn-a {
-    font-size: 1.5em;
+  .info-grid {
+    grid-template-columns: 1fr;
   }
 
-  .img-container {
-    display: none;
+  .info-item {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
   }
 
-  .create-body {
-    margin-top: 10%;
+  .preview-section {
+    padding: 1rem;
+  }
+
+  .nft-info {
+    padding: 1rem;
   }
 }
 
-@media (max-width: 1024px) and (min-height: 1366px) {
-  
-  .iphone-container {
-    width: 40vw;
+@media (max-width: 576px) {
+  .hero-content {
+    padding-right: 0;
+    margin-bottom: 2rem;
   }
 
-  .iphone-x b {
-    transform: translate(230px, 4px);
+  .hero-title {
+    font-size: 2rem;
   }
 
-  .iphone-x s {
-    font-size: 4em;
-    padding-top: 0;
+  .form-card {
+    padding: 1rem;
   }
 
-  .img-container {
-    display: block;
+  .iphone-x {
+    width: 200px;
+    height: 400px;
+  }
+
+  .art-title {
+    font-size: 1.5rem;
   }
 
   .src-img {
-    width: 75%;
-  }
-  
-  .art-title {
-    font-size: 4.5em;
+    max-width: 250px;
   }
 
-
-  .btn-a {
-    font-size: 2.5em;
+  .info-card {
+    padding: 1rem;
   }
 
-}
-
-@media (max-width: 820px) and (min-height: 1180px) {
-  
-  .iphone-container {
-    width: 40vw;
-  }
-
-  .iphone-x b {
-    transform: translate(175px, 4px);
-  }
-
-  .iphone-x s {
-    font-size: 4em;
-    padding-top: 0;
-  }
-
-  .img-container {
-    display: block;
-  }
-
-  .src-img {
-    width: 75%;
-  }
-  
-  .art-title {
-    font-size: 4em;
-  }
-
-
-  .btn-a {
-    font-size: 2.5em;
-  }
-
-}
-
-@media (max-width: 768px) and (min-height: 1024px) {
-  
-  .iphone-container {
-    width: 40vw;
-  }
-
-  .iphone-x b {
-    transform: translate(175px, 4px);
-  }
-
-  .iphone-x s {
-    font-size: 4em;
-    padding-top: 0;
-  }
-
-  .img-container {
-    display: block;
-  }
-
-  .src-img {
-    width: 75%;
-  }
-  
-  .art-title {
-    font-size: 4em;
-  }
-
-
-  .btn-a {
-    font-size: 2em;
-  }
-
-}
-
-@media (max-width: 854px) and (min-height: 1280px) {
-  
-  .iphone-container {
-    width: 40vw;
-  }
-
-  .iphone-x b {
-    transform: translate(175px, 4px);
-  }
-
-  .iphone-x s {
-    font-size: 4em;
-    padding-top: 0;
-  }
-
-  .img-container {
-    display: block;
-  }
-
-  .src-img {
-    width: 75%;
-  }
-  
-  .art-title {
-    font-size: 4em;
-  }
-
-
-  .btn-a {
-    font-size: 2em;
-  }
-
-}
-
-@media (min-width: 1024px) and (max-height: 600px) {
-  
-  .iphone-container {
-    width: 20vw;
-    height: 70vh;
-  }
-
-  .iphone-x b {
-    transform: translate(110px, 4px);
-  }
-
-  .iphone-x s {
-    font-size: 3em;
-    padding-top: 0;
-  }
-
-  .img-container {
-    display: block;
-  }
-
-  .src-img {
-    width: 50%;
-  }
-
-  .art-title {
-    font-size: 3em;
-  }
-
-}
-
-@media (max-width: 431px) {
-  .iphone-container {
-    width: 60vw;
-    height: 55vh;
-  }
-
-  .iphone-x b {
-    transform: translate(130px, 4px);
-  }
-
-  .iphone-x s {
-    font-size: 3em;
-    padding-top: 0;
-  }
-}
-
-@media (max-width: 415px) {
-  .iphone-x b {
-    transform: translate(130px, 4px);
-  }
-}
-
-@media (max-width: 376px) {
-  .iphone-container {
-    width: 45vw;
-    height: 45vh;
-  }
-
-  .iphone-x b {
-    transform: translate(90px, 4px);
-  }
-
-  .iphone-x s {
-    font-size: 2em;
+  .section-title {
+    font-size: 1.5rem;
   }
 }

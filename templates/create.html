@@ -5,55 +5,113 @@
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Meta Kabegami</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <title>Meta Kabegami - Wallpaper Generated</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="static/css/styles.css">
     <link rel="icon" href="static/images/logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+128&family=Libre+Barcode+39+Text&display=swap&family=Libre+Barcode+39+Extended+Text&family=Major+Mono+Display&family=Sedgwick+Ave&display&family=Nova+Square&family=Sedgwick+Ave+Display&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="main-container">
         {% include 'navbar.html' %}
-        <div class="create-body container-fluid">
-            <div class="row">
-                <div class="col-lg-6 col-md-12 col-sm-12 iphone-col">
-                    <div class="iphone-container">
-                        <div class="iphone-x" style="background-image: url('/image/image_converted.png?timestamp={{ time_now }}');">
-                          <i>Speaker</i>
-                          <b>Camera</b>
-                          <s>10:24</s>
 
-                          <span>Left action button</span>
-                          <span>Right action button</span>
+        <div class="floating-nfts">
+            <img src="static/images/NFT-images/Azuki-1.png" class="floating-nft" alt="Azuki NFT">
+            <img src="static/images/NFT-images/BAYC-1.png" class="floating-nft" alt="BAYC NFT">
+            <img src="static/images/NFT-images/Kitaro-1.png" class="floating-nft" alt="Kitaro NFT">
+            <img src="static/images/NFT-images/Azuki-2.png" class="floating-nft" alt="Azuki NFT">
+            <img src="static/images/NFT-images/BAYC-2.png" class="floating-nft" alt="BAYC NFT">
+            <img src="static/images/NFT-images/Kitaro-2.png" class="floating-nft" alt="Kitaro NFT">
+            <img src="static/images/NFT-images/Azuki-3.png" class="floating-nft" alt="Azuki NFT">
+            <img src="static/images/NFT-images/BAYC-3.png" class="floating-nft" alt="BAYC NFT">
+            <img src="static/images/NFT-images/Kitaro-3.png" class="floating-nft" alt="Kitaro NFT">
+            <img src="static/images/NFT-images/Kitaro-4.png" class="floating-nft" alt="Kitaro NFT">
+        </div>
+
+        <div class="create-body">
+            <div class="container">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="flash-messages mb-4">
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
                         </div>
-                    </div>
-                </div>
+                    {% endif %}
+                {% endwith %}
 
-                <div class="col-lg-6 col-md-12 col-sm-12">
-                    <div class="nft-info d-flex justify-content-center align-items-center">
-                        <div class="nft-info-details text-center">
-                            <h1 class="art-title">{{ art_title }}</h1>
-                            <div class="img-container">
-                                <img src="{{ img_src }}" class="src-img"/>
+                <div class="row align-items-center">
+                    <div class="col-lg-6 col-md-12 mb-4">
+                        <div class="preview-section">
+                            <h2 class="section-title">Preview</h2>
+                            <div class="iphone-container">
+                                <div class="iphone-x" style="background-image: url('/image/image_converted.png?timestamp={{ time_now }}');">
+                                    <i></i>
+                                    <b></b>
+                                    <s>10:24</s>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="d-flex button-row" style="justify-content: center;">
-                        <a href="{{ url_for('download_page') }}" class="btn-a"><button class="btn">Download</button></a>
-<!--                        <a href="mailto:recipient@example.com?subject=Your%20NFT%20Wallpaper%20is%20Ready!&body=Hello%20{{ username }},%0D%0A%0D%0AYour%20NFT%20wallpaper%20has%20been%20generated!%20You%20can%20download%20it%20using%20the%20link%20below:%0D%0A%0D%0A{{ wallpaper_url }}%0D%0A%0D%0AThank%20you%20for%20your%20support!%0D%0A%0D%0A- The NFT Team" class="btn-a">-->
-<!--                            <button class="btn">Send Wallpaper</button>-->
-<!--                        </a>-->
-                        
-                        <a href="{{ url_for('main_page') }}" class="btn-a"><button class="btn">Home</button></a>
+
+                    <div class="col-lg-6 col-md-12">
+                        <div class="nft-info">
+                            <div class="nft-info-details">
+                                <h1 class="art-title">{{ art_title }}</h1>
+                                <div class="img-container">
+                                    <img src="{{ img_src }}" class="src-img" alt="NFT Image"/>
+                                </div>
+
+                                <div class="wallpaper-info">
+                                    <div class="info-card">
+                                        <h3>Wallpaper Details</h3>
+                                        <div class="info-grid">
+                                            <div class="info-item">
+                                                <span class="info-label">Device:</span>
+                                                <span class="info-value">{{ device_type.replace('_', ' ').title() }}</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <span class="info-label">Resolution:</span>
+                                                <span class="info-value">{{ dimensions }}</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <span class="info-label">Format:</span>
+                                                <span class="info-value">PNG</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <span class="info-label">Quality:</span>
+                                                <span class="info-value">High Definition</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="button-row">
+                                    <a href="{{ url_for('download_page') }}" class="btn-a">
+                                        <button class="btn btn-download">
+                                            <span>📥</span>
+                                            Download Wallpaper
+                                        </button>
+                                    </a>
+                                    <a href="{{ url_for('main_page') }}" class="btn-a">
+                                        <button class="btn btn-home">
+                                            <span>🏠</span>
+                                            Create Another
+                                        </button>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
-    
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
