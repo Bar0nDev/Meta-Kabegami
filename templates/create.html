@@ -86,12 +86,10 @@
                                                 <span class="info-label">Quality:</span>
                                                 <span class="info-value">High Definition</span>
                                             </div>
-                                            {% if cache_key %}
                                             <div class="info-item">
                                                 <span class="info-label">Source:</span>
-                                                <span class="info-value">📦 Cached</span>
+                                                <span class="info-value">{% if from_cache %}📦 Cached{% else %}🔄 Generated{% endif %}</span>
                                             </div>
-                                            {% endif %}
                                         </div>
                                     </div>
                                 </div>

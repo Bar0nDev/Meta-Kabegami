@@ -10,6 +10,8 @@ import os
 import json
 import hashlib
 import base64
+import time
+import uuid
 
 load_dotenv()
 
@@ -37,9 +39,33 @@ def generate_cache_key(img_src, device_type, target_width, target_height):
     return hashlib.md5(key_string.encode()).hexdigest()
 
 
+def generate_session_id():
+    """Generate a unique session ID for file naming"""
+    return str(uuid.uuid4())[:8]
+
+
+def cleanup_old_files():
+    """Clean up old temporary files (older than 10 minutes)"""
+    try:
+        tmp_folder = '/tmp'
+        current_time = time.time()
+
+        for filename in os.listdir(tmp_folder):
+            if filename.startswith(('image_converted_', 'target_img_', 'cached_')):
+                file_path = os.path.join(tmp_folder, filename)
+                if os.path.isfile(file_path):
+                    if current_time - os.path.getmtime(file_path) > 600:
+                        os.unlink(file_path)
+    except Exception as e:
+        print(f"Error cleaning up files: {e}")
+
+
 def get_from_edge_config(key):
     """Retrieve data from Vercel Edge Config"""
     try:
+        if not EDGE_CONFIG_TOKEN:
+            return None
+
         headers = {
             'Authorization': f'Bearer {EDGE_CONFIG_TOKEN}',
             'Content-Type': 'application/json'
@@ -47,7 +73,8 @@ def get_from_edge_config(key):
 
         response = requests.get(
             f"{EDGE_CONFIG_BASE_URL}/items/{key}",
-            headers=headers
+            headers=headers,
+            timeout=10
         )
 
         if response.status_code == 200:
@@ -61,19 +88,21 @@ def get_from_edge_config(key):
 def save_to_edge_config(key, data):
     """Save data to Vercel Edge Config"""
     try:
+        if not EDGE_CONFIG_TOKEN:
+            return False
+
         headers = {
             'Authorization': f'Bearer {EDGE_CONFIG_TOKEN}',
             'Content-Type': 'application/json'
         }
 
-        payload = {
-            key: data
-        }
+        payload = {key: data}
 
         response = requests.patch(
             f"{EDGE_CONFIG_BASE_URL}/items",
             headers=headers,
-            json=payload
+            json=payload,
+            timeout=10
         )
 
         return response.status_code in [200, 201]
@@ -174,14 +203,7 @@ def create_wallpaper(img, target_width, target_height):
 @app.route('/', methods=["POST", "GET"])
 def main_page():
     if request.method == "GET":
-        tmp_folder = '/tmp'
-        try:
-            for filename in os.listdir(tmp_folder):
-                file_path = os.path.join(tmp_folder, filename)
-                if os.path.isfile(file_path):
-                    os.unlink(file_path)
-        except Exception as e:
-            print(e)
+        cleanup_old_files()
         return render_template('index.html')
     else:
         img_address = request.form['pname']
@@ -196,7 +218,10 @@ def main_page():
             return render_template('index.html')
 
         try:
-            response = requests.get(img_address)
+            session_id = generate_session_id()
+            session['session_id'] = session_id
+
+            response = requests.get(img_address, timeout=15)
             html_content = response.text
             soup = BeautifulSoup(html_content, 'html.parser')
 
@@ -210,11 +235,14 @@ def main_page():
 
                     cache_key = generate_cache_key(img_src, device_type, target_width, target_height)
 
+                    converted_path = f'/tmp/image_converted_{session_id}.png'
+                    target_path = f'/tmp/target_img_{session_id}.png'
+
                     cached_data = get_from_edge_config(cache_key)
 
                     if cached_data and 'image_base64' in cached_data:
                         print("Loading wallpaper from cache...")
-                        success = base64_to_image(cached_data['image_base64'], '/tmp/image_converted.png')
+                        success = base64_to_image(cached_data['image_base64'], converted_path)
 
                         if success:
                             session['title'] = cached_data.get('title', title)
@@ -222,42 +250,51 @@ def main_page():
                             session['device_type'] = device_type
                             session['dimensions'] = f"{target_width} × {target_height}"
                             session['cache_key'] = cache_key
+                            session['image_path'] = converted_path
+                            session['from_cache'] = True
 
                             return redirect('/create')
 
                     print("Generating new wallpaper...")
-                    img_response = requests.get(img_src)
+                    img_response = requests.get(img_src, timeout=15)
                     img = Image.open(BytesIO(img_response.content))
 
-                    img.save("/tmp/target_img.png")
+                    img.save(target_path)
 
                     final_img = create_wallpaper(img, target_width, target_height)
-                    final_img.save('/tmp/image_converted.png')
+                    final_img.save(converted_path)
 
-                    image_base64 = image_to_base64('/tmp/image_converted.png')
+                    if not os.path.exists(converted_path):
+                        raise Exception("Failed to create wallpaper image")
 
-                    if image_base64:
-                        cache_data = {
-                            'image_base64': image_base64,
-                            'title': title,
-                            'img_src': img_src,
-                            'device_type': device_type,
-                            'target_width': target_width,
-                            'target_height': target_height,
-                            'created_at': datetime.now().isoformat()
-                        }
+                    try:
+                        image_base64 = image_to_base64(converted_path)
+                        if image_base64:
+                            cache_data = {
+                                'image_base64': image_base64,
+                                'title': title,
+                                'img_src': img_src,
+                                'device_type': device_type,
+                                'target_width': target_width,
+                                'target_height': target_height,
+                                'created_at': datetime.now().isoformat()
+                            }
 
-                        save_success = save_to_edge_config(cache_key, cache_data)
-                        if save_success:
-                            print("Wallpaper saved to cache successfully!")
-                        else:
-                            print("Failed to save wallpaper to cache")
+                            save_success = save_to_edge_config(cache_key, cache_data)
+                            if save_success:
+                                print("Wallpaper saved to cache successfully!")
+                            else:
+                                print("Failed to save wallpaper to cache (continuing anyway)")
+                    except Exception as cache_error:
+                        print(f"Cache save error (continuing anyway): {cache_error}")
 
                     session['title'] = title
                     session['img_src'] = img_src
                     session['device_type'] = device_type
                     session['dimensions'] = f"{target_width} × {target_height}"
                     session['cache_key'] = cache_key
+                    session['image_path'] = converted_path
+                    session['from_cache'] = False
 
                     return redirect('/create')
                 else:
@@ -274,7 +311,22 @@ def main_page():
 
 @app.route('/image/<filename>')
 def get_image(filename):
-    return send_from_directory('/tmp', filename)
+    """Serve images from session-specific files"""
+    session_id = session.get('session_id')
+    if not session_id:
+        return "Session expired", 404
+
+    if filename == 'image_converted.png':
+        actual_filename = f'image_converted_{session_id}.png'
+    else:
+        actual_filename = filename
+
+    file_path = f'/tmp/{actual_filename}'
+
+    if not os.path.exists(file_path):
+        return "Image not found", 404
+
+    return send_from_directory('/tmp', actual_filename)
 
 
 @app.route('/cached-image/<cache_key>')
@@ -284,24 +336,46 @@ def get_cached_image(cache_key):
         cached_data = get_from_edge_config(cache_key)
 
         if cached_data and 'image_base64' in cached_data:
-            temp_path = f'/tmp/cached_{cache_key}.png'
+            session_id = session.get('session_id', 'temp')
+            temp_path = f'/tmp/cached_{session_id}_{cache_key}.png'
             success = base64_to_image(cached_data['image_base64'], temp_path)
 
             if success:
                 return send_file(temp_path, mimetype='image/png')
 
-        return send_from_directory('/tmp', 'image_converted.png')
+        return redirect(url_for('get_image', filename='image_converted.png'))
     except Exception as e:
         print(f"Error serving cached image: {e}")
-        return send_from_directory('/tmp', 'image_converted.png')
+        return redirect(url_for('get_image', filename='image_converted.png'))
 
 
 @app.route('/create', methods=["POST", "GET"])
 def create_page():
     if request.method == "GET":
-        if 'title' not in session or 'img_src' not in session:
-            flash('Session expired. Please generate a new wallpaper.', 'error')
-            return redirect(url_for('main_page'))
+        required_keys = ['title', 'img_src', 'session_id']
+        for key in required_keys:
+            if key not in session:
+                flash('Session expired. Please generate a new wallpaper.', 'error')
+                return redirect(url_for('main_page'))
+
+        session_id = session.get('session_id')
+        expected_path = f'/tmp/image_converted_{session_id}.png'
+
+        if not os.path.exists(expected_path):
+            cache_key = session.get('cache_key')
+            if cache_key:
+                cached_data = get_from_edge_config(cache_key)
+                if cached_data and 'image_base64' in cached_data:
+                    success = base64_to_image(cached_data['image_base64'], expected_path)
+                    if not success:
+                        flash('Unable to load wallpaper. Please generate a new one.', 'error')
+                        return redirect(url_for('main_page'))
+                else:
+                    flash('Wallpaper not found. Please generate a new one.', 'error')
+                    return redirect(url_for('main_page'))
+            else:
+                flash('Wallpaper not found. Please generate a new one.', 'error')
+                return redirect(url_for('main_page'))
 
         return render_template('create.html',
                                img_src=session['img_src'],
@@ -309,15 +383,34 @@ def create_page():
                                device_type=session.get('device_type', 'Unknown'),
                                dimensions=session.get('dimensions', 'Unknown'),
                                cache_key=session.get('cache_key', ''),
+                               from_cache=session.get('from_cache', False),
                                time_now=datetime.now().timestamp())
 
 
 @app.route('/download')
 def download_page():
-    path = "/tmp/image_converted.png"
-    if not os.path.exists(path):
-        flash('No wallpaper found. Please generate a new one.', 'error')
+    session_id = session.get('session_id')
+    if not session_id:
+        flash('Session expired. Please generate a new wallpaper.', 'error')
         return redirect(url_for('main_page'))
+
+    path = f"/tmp/image_converted_{session_id}.png"
+
+    if not os.path.exists(path):
+        cache_key = session.get('cache_key')
+        if cache_key:
+            cached_data = get_from_edge_config(cache_key)
+            if cached_data and 'image_base64' in cached_data:
+                success = base64_to_image(cached_data['image_base64'], path)
+                if not success:
+                    flash('No wallpaper found. Please generate a new one.', 'error')
+                    return redirect(url_for('main_page'))
+            else:
+                flash('No wallpaper found. Please generate a new one.', 'error')
+                return redirect(url_for('main_page'))
+        else:
+            flash('No wallpaper found. Please generate a new one.', 'error')
+            return redirect(url_for('main_page'))
 
     device_type = session.get('device_type', 'wallpaper')
     title = session.get('title', 'nft_wallpaper')
