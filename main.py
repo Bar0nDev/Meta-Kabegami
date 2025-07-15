@@ -1,4 +1,5 @@
-from flask import Flask, render_template, send_from_directory, redirect, url_for, request, session, send_file, flash
+from flask import Flask, render_template, send_from_directory, redirect, url_for, request, session, send_file, flash, \
+    jsonify
 from datetime import datetime
 from dotenv import load_dotenv
 from PIL import Image, ImageOps, ImageDraw, ImageFilter
@@ -6,12 +7,17 @@ from bs4 import BeautifulSoup
 from curl_cffi import requests
 from io import BytesIO
 import os
+import json
+import hashlib
+import base64
 
 load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
 
+EDGE_CONFIG_TOKEN = os.getenv("EDGE_KEY")
+EDGE_CONFIG_BASE_URL = "https://edge-config.vercel.com/v1"
 
 DEVICE_SIZES = {
     'iphone_14_pro': (1179, 2556),
@@ -23,6 +29,79 @@ DEVICE_SIZES = {
     'samsung_s22': (1080, 2340),
     'pixel_7': (1080, 2400),
 }
+
+
+def generate_cache_key(img_src, device_type, target_width, target_height):
+    """Generate a unique cache key for the image configuration"""
+    key_string = f"{img_src}_{device_type}_{target_width}_{target_height}"
+    return hashlib.md5(key_string.encode()).hexdigest()
+
+
+def get_from_edge_config(key):
+    """Retrieve data from Vercel Edge Config"""
+    try:
+        headers = {
+            'Authorization': f'Bearer {EDGE_CONFIG_TOKEN}',
+            'Content-Type': 'application/json'
+        }
+
+        response = requests.get(
+            f"{EDGE_CONFIG_BASE_URL}/items/{key}",
+            headers=headers
+        )
+
+        if response.status_code == 200:
+            return response.json()
+        return None
+    except Exception as e:
+        print(f"Error retrieving from Edge Config: {e}")
+        return None
+
+
+def save_to_edge_config(key, data):
+    """Save data to Vercel Edge Config"""
+    try:
+        headers = {
+            'Authorization': f'Bearer {EDGE_CONFIG_TOKEN}',
+            'Content-Type': 'application/json'
+        }
+
+        payload = {
+            key: data
+        }
+
+        response = requests.patch(
+            f"{EDGE_CONFIG_BASE_URL}/items",
+            headers=headers,
+            json=payload
+        )
+
+        return response.status_code in [200, 201]
+    except Exception as e:
+        print(f"Error saving to Edge Config: {e}")
+        return False
+
+
+def image_to_base64(image_path):
+    """Convert image file to base64 string"""
+    try:
+        with open(image_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode('utf-8')
+    except Exception as e:
+        print(f"Error converting image to base64: {e}")
+        return None
+
+
+def base64_to_image(base64_string, output_path):
+    """Convert base64 string back to image file"""
+    try:
+        image_data = base64.b64decode(base64_string)
+        with open(output_path, "wb") as image_file:
+            image_file.write(image_data)
+        return True
+    except Exception as e:
+        print(f"Error converting base64 to image: {e}")
+        return False
 
 
 def get_device_dimensions(device_type, custom_width=None, custom_height=None):
@@ -54,7 +133,6 @@ def create_wallpaper(img, target_width, target_height):
     else:
         cropped_img = img
 
-
     main_img_height = int(target_height * 0.7)
     gradient_height = target_height - main_img_height
 
@@ -76,7 +154,6 @@ def create_wallpaper(img, target_width, target_height):
 
         draw = ImageDraw.Draw(final_img)
         draw.line([(0, y), (target_width, y)], fill=blended_color)
-
 
     seam_y = gradient_height
     blur_zone_height = min(150, gradient_height // 3)
@@ -131,19 +208,56 @@ def main_page():
                     img_src = img_tag["content"]
                     title = title_tag["content"]
 
+                    cache_key = generate_cache_key(img_src, device_type, target_width, target_height)
+
+                    cached_data = get_from_edge_config(cache_key)
+
+                    if cached_data and 'image_base64' in cached_data:
+                        print("Loading wallpaper from cache...")
+                        success = base64_to_image(cached_data['image_base64'], '/tmp/image_converted.png')
+
+                        if success:
+                            session['title'] = cached_data.get('title', title)
+                            session['img_src'] = cached_data.get('img_src', img_src)
+                            session['device_type'] = device_type
+                            session['dimensions'] = f"{target_width} × {target_height}"
+                            session['cache_key'] = cache_key
+
+                            return redirect('/create')
+
+                    print("Generating new wallpaper...")
                     img_response = requests.get(img_src)
                     img = Image.open(BytesIO(img_response.content))
 
                     img.save("/tmp/target_img.png")
 
                     final_img = create_wallpaper(img, target_width, target_height)
-
                     final_img.save('/tmp/image_converted.png')
+
+                    image_base64 = image_to_base64('/tmp/image_converted.png')
+
+                    if image_base64:
+                        cache_data = {
+                            'image_base64': image_base64,
+                            'title': title,
+                            'img_src': img_src,
+                            'device_type': device_type,
+                            'target_width': target_width,
+                            'target_height': target_height,
+                            'created_at': datetime.now().isoformat()
+                        }
+
+                        save_success = save_to_edge_config(cache_key, cache_data)
+                        if save_success:
+                            print("Wallpaper saved to cache successfully!")
+                        else:
+                            print("Failed to save wallpaper to cache")
 
                     session['title'] = title
                     session['img_src'] = img_src
                     session['device_type'] = device_type
                     session['dimensions'] = f"{target_width} × {target_height}"
+                    session['cache_key'] = cache_key
 
                     return redirect('/create')
                 else:
@@ -161,7 +275,26 @@ def main_page():
 @app.route('/image/<filename>')
 def get_image(filename):
     return send_from_directory('/tmp', filename)
-# test
+
+
+@app.route('/cached-image/<cache_key>')
+def get_cached_image(cache_key):
+    """Serve image directly from Edge Config cache"""
+    try:
+        cached_data = get_from_edge_config(cache_key)
+
+        if cached_data and 'image_base64' in cached_data:
+            temp_path = f'/tmp/cached_{cache_key}.png'
+            success = base64_to_image(cached_data['image_base64'], temp_path)
+
+            if success:
+                return send_file(temp_path, mimetype='image/png')
+
+        return send_from_directory('/tmp', 'image_converted.png')
+    except Exception as e:
+        print(f"Error serving cached image: {e}")
+        return send_from_directory('/tmp', 'image_converted.png')
+
 
 @app.route('/create', methods=["POST", "GET"])
 def create_page():
@@ -175,6 +308,7 @@ def create_page():
                                art_title=session['title'],
                                device_type=session.get('device_type', 'Unknown'),
                                dimensions=session.get('dimensions', 'Unknown'),
+                               cache_key=session.get('cache_key', ''),
                                time_now=datetime.now().timestamp())
 
 

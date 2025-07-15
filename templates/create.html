@@ -43,13 +43,13 @@
                         </div>
                     {% endif %}
                 {% endwith %}
-<!--test-->
+
                 <div class="row align-items-center">
                     <div class="col-lg-6 col-md-12 mb-4">
                         <div class="preview-section">
                             <h2 class="section-title">Preview</h2>
                             <div class="iphone-container">
-                                <div class="iphone-x" style="background-image: url('{{ url_for('get_image', filename='image_converted.png') }}');">
+                                <div class="iphone-x" style="background-image: url('{% if cache_key %}{{ url_for('get_cached_image', cache_key=cache_key) }}{% else %}{{ url_for('get_image', filename='image_converted.png') }}{% endif %}?t={{ time_now }}');">
                                     <i></i>
                                     <b></b>
                                     <s>10:24</s>
@@ -86,6 +86,12 @@
                                                 <span class="info-label">Quality:</span>
                                                 <span class="info-value">High Definition</span>
                                             </div>
+                                            {% if cache_key %}
+                                            <div class="info-item">
+                                                <span class="info-label">Source:</span>
+                                                <span class="info-value">📦 Cached</span>
+                                            </div>
+                                            {% endif %}
                                         </div>
                                     </div>
                                 </div>
@@ -113,5 +119,31 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Add error handling for image loading
+        document.addEventListener('DOMContentLoaded', function() {
+            const previewImage = document.querySelector('.iphone-x');
+            const originalBg = previewImage.style.backgroundImage;
+
+            // Create a test image to check if the background image loads
+            const testImg = new Image();
+            testImg.onload = function() {
+                console.log('Wallpaper loaded successfully');
+            };
+            testImg.onerror = function() {
+                console.log('Failed to load wallpaper, attempting fallback...');
+                // Fallback to regular image serving if cached image fails
+                {% if cache_key %}
+                previewImage.style.backgroundImage = "url('{{ url_for('get_image', filename='image_converted.png') }}?t={{ time_now }}')";
+                {% endif %}
+            };
+
+            // Extract URL from background-image CSS property
+            const bgUrl = originalBg.match(/url\(['"]?([^'"]+)['"]?\)/);
+            if (bgUrl && bgUrl[1]) {
+                testImg.src = bgUrl[1];
+            }
+        });
+    </script>
 </body>
 </html>
