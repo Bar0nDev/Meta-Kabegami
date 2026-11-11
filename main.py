@@ -1,5 +1,4 @@
-from flask import Flask, render_template, send_from_directory, redirect, url_for, request, session, send_file, flash, \
-    jsonify
+from flask import Flask, render_template, send_from_directory, redirect, url_for, request, session, send_file, flash
 from datetime import datetime
 from dotenv import load_dotenv
 from PIL import Image, ImageOps, ImageDraw, ImageFilter
@@ -7,173 +6,224 @@ from bs4 import BeautifulSoup
 from curl_cffi import requests
 from io import BytesIO
 import os
-import json
-import hashlib
-import base64
-import time
-import uuid
-import tempfile
+from urllib.parse import quote
 
 load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
+OPENSEA_API_KEY = os.getenv('OPENSEA_API_KEY')
+OPENSEA_API_BASE_URL = 'https://api.opensea.io/api/v2'
 
-app.config['SESSION_PERMANENT'] = True
-app.config['SESSION_TYPE'] = 'filesystem'
-app.config['PERMANENT_SESSION_LIFETIME'] = 3600
-
-EDGE_CONFIG_TOKEN = os.getenv("EDGE_KEY")
-EDGE_CONFIG_BASE_URL = "https://edge-config.vercel.com/v1"
 
 DEVICE_SIZES = {
+    'iphone_16_pro_max': (1320, 2868),
+    'iphone_16_pro': (1206, 2622),
+    'iphone_15_pro_max': (1290, 2796),
+    'iphone_15_pro': (1179, 2556),
     'iphone_14_pro': (1179, 2556),
     'iphone_14': (1170, 2532),
     'iphone_13_pro': (1170, 2532),
     'iphone_12_pro': (1170, 2532),
     'iphone_x': (1125, 2436),
+    'samsung_s24_ultra': (1440, 3120),
+    'samsung_s24': (1080, 2340),
     'samsung_s23': (1080, 2340),
     'samsung_s22': (1080, 2340),
+    'pixel_9_pro_xl': (1344, 2992),
     'pixel_7': (1080, 2400),
+    'oneplus_12': (1440, 3168),
+}
+
+DEVICE_OPTIONS = [
+    {'value': 'iphone_16_pro_max', 'label': 'iPhone 16 Pro Max', 'dimensions': '1320 × 2868'},
+    {'value': 'iphone_16_pro', 'label': 'iPhone 16 Pro', 'dimensions': '1206 × 2622'},
+    {'value': 'iphone_15_pro_max', 'label': 'iPhone 15 Pro Max', 'dimensions': '1290 × 2796'},
+    {'value': 'iphone_15_pro', 'label': 'iPhone 15 Pro', 'dimensions': '1179 × 2556'},
+    {'value': 'iphone_14_pro', 'label': 'iPhone 14 Pro', 'dimensions': '1179 × 2556'},
+    {'value': 'iphone_14', 'label': 'iPhone 14', 'dimensions': '1170 × 2532'},
+    {'value': 'iphone_13_pro', 'label': 'iPhone 13 Pro', 'dimensions': '1170 × 2532'},
+    {'value': 'iphone_12_pro', 'label': 'iPhone 12 Pro', 'dimensions': '1170 × 2532'},
+    {'value': 'iphone_x', 'label': 'iPhone X', 'dimensions': '1125 × 2436'},
+    {'value': 'samsung_s24_ultra', 'label': 'Samsung S24 Ultra', 'dimensions': '1440 × 3120'},
+    {'value': 'samsung_s24', 'label': 'Samsung S24', 'dimensions': '1080 × 2340'},
+    {'value': 'samsung_s23', 'label': 'Samsung S23', 'dimensions': '1080 × 2340'},
+    {'value': 'samsung_s22', 'label': 'Samsung S22', 'dimensions': '1080 × 2340'},
+    {'value': 'pixel_9_pro_xl', 'label': 'Google Pixel 9 Pro XL', 'dimensions': '1344 × 2992'},
+    {'value': 'pixel_7', 'label': 'Google Pixel 7', 'dimensions': '1080 × 2400'},
+    {'value': 'oneplus_12', 'label': 'OnePlus 12', 'dimensions': '1440 × 3168'},
+    {'value': 'custom', 'label': 'Custom size', 'dimensions': 'Set your own'},
+]
+
+GRADIENT_STYLES = {
+    'none': 0.0,
+    'soft': 0.30,
+    'strong': 0.55,
 }
 
 
-def generate_cache_key(img_src, device_type, target_width, target_height):
-    """Generate a unique cache key for the image configuration"""
-    key_string = f"{img_src}_{device_type}_{target_width}_{target_height}"
-    return hashlib.md5(key_string.encode()).hexdigest()
+# The local catalog gives the site a real discovery layer without making the
+# wallpaper generator dependent on a marketplace API being available.
+COLLECTIONS = [
+    {
+        'slug': 'kitaro',
+        'name': 'Kitaro',
+        'eyebrow': 'Digital portrait study',
+        'description': 'Glitched portraits with a quiet, cinematic energy.',
+        'cover': '/static/images/NFT-images/Kitaro-1.png',
+    },
+    {
+        'slug': 'bayc',
+        'name': 'BAYC',
+        'eyebrow': 'Character archive',
+        'description': 'Iconic expressions, cropped for your lock screen.',
+        'cover': '/static/images/NFT-images/BAYC-1.png',
+    },
+    {
+        'slug': 'azuki',
+        'name': 'Azuki',
+        'eyebrow': 'Anime-inspired avatars',
+        'description': 'Colorful character studies built for vertical screens.',
+        'cover': '/static/images/NFT-images/Azuki-1.png',
+    },
+]
+
+NFT_CATALOG = [
+    {'id': 'kitaro-1', 'name': 'Kitaro 01', 'collection': 'Kitaro', 'collection_slug': 'kitaro', 'image': '/static/images/NFT-images/Kitaro-1.png'},
+    {'id': 'kitaro-2', 'name': 'Kitaro 02', 'collection': 'Kitaro', 'collection_slug': 'kitaro', 'image': '/static/images/NFT-images/Kitaro-2.png'},
+    {'id': 'kitaro-3', 'name': 'Kitaro 03', 'collection': 'Kitaro', 'collection_slug': 'kitaro', 'image': '/static/images/NFT-images/Kitaro-3.png'},
+    {'id': 'kitaro-4', 'name': 'Kitaro 04', 'collection': 'Kitaro', 'collection_slug': 'kitaro', 'image': '/static/images/NFT-images/Kitaro-4.png'},
+    {'id': 'bayc-1', 'name': 'BAYC 01', 'collection': 'BAYC', 'collection_slug': 'bayc', 'image': '/static/images/NFT-images/BAYC-1.png'},
+    {'id': 'bayc-2', 'name': 'BAYC 02', 'collection': 'BAYC', 'collection_slug': 'bayc', 'image': '/static/images/NFT-images/BAYC-2.png'},
+    {'id': 'bayc-3', 'name': 'BAYC 03', 'collection': 'BAYC', 'collection_slug': 'bayc', 'image': '/static/images/NFT-images/BAYC-3.png'},
+    {'id': 'azuki-1', 'name': 'Azuki 01', 'collection': 'Azuki', 'collection_slug': 'azuki', 'image': '/static/images/NFT-images/Azuki-1.png'},
+    {'id': 'azuki-2', 'name': 'Azuki 02', 'collection': 'Azuki', 'collection_slug': 'azuki', 'image': '/static/images/NFT-images/Azuki-2.png'},
+    {'id': 'azuki-3', 'name': 'Azuki 03', 'collection': 'Azuki', 'collection_slug': 'azuki', 'image': '/static/images/NFT-images/Azuki-3.png'},
+]
 
 
-def generate_session_id():
-    """Generate a unique session ID for file naming"""
-    return str(uuid.uuid4())[:8]
+def catalog_context():
+    return {
+        'collections': COLLECTIONS,
+        'featured_nfts': NFT_CATALOG,
+        'collection_count': len(COLLECTIONS),
+        'nft_count': len(NFT_CATALOG),
+        'device_options': DEVICE_OPTIONS,
+    }
 
 
-def get_temp_dir():
-    """Get a consistent temporary directory"""
-    temp_dir = tempfile.gettempdir()
-    return temp_dir
+def render_home():
+    return render_template('index.html', **catalog_context())
 
 
-def cleanup_old_files():
-    """Clean up old temporary files (older than 10 minutes)"""
+def opensea_get(path, params=None):
+    """Read public marketplace data without exposing the API key to visitors."""
+    if not OPENSEA_API_KEY:
+        return None
+
     try:
-        tmp_folder = get_temp_dir()
-        current_time = time.time()
-
-        for filename in os.listdir(tmp_folder):
-            if filename.startswith(('image_converted_', 'target_img_', 'cached_')):
-                file_path = os.path.join(tmp_folder, filename)
-                if os.path.isfile(file_path):
-                    if current_time - os.path.getmtime(file_path) > 600:
-                        os.unlink(file_path)
-    except Exception as e:
-        print(f"Error cleaning up files: {e}")
-
-
-def get_from_edge_config(key):
-    """Retrieve data from Vercel Edge Config"""
-    try:
-        if not EDGE_CONFIG_TOKEN:
-            print("No Edge Config token found")
-            return None
-
-        headers = {
-            'Authorization': f'Bearer {EDGE_CONFIG_TOKEN}',
-            'Content-Type': 'application/json'
-        }
-
         response = requests.get(
-            f"{EDGE_CONFIG_BASE_URL}/items/{key}",
-            headers=headers,
-            timeout=10
+            f'{OPENSEA_API_BASE_URL}{path}',
+            headers={'x-api-key': OPENSEA_API_KEY, 'accept': 'application/json'},
+            params=params or {},
+            timeout=10,
         )
-
-        if response.status_code == 200:
-            return response.json()
-        elif response.status_code == 404:
-            print(f"Cache key {key} not found")
+        if response.status_code != 200:
             return None
-        else:
-            print(f"Edge Config error: {response.status_code} - {response.text}")
-            return None
-    except Exception as e:
-        print(f"Error retrieving from Edge Config: {e}")
+        return response.json()
+    except Exception as error:
+        print(f'OpenSea request failed: {error}')
         return None
 
 
-def save_to_edge_config(key, data):
-    """Save data to Vercel Edge Config"""
-    try:
-        if not EDGE_CONFIG_TOKEN:
-            print("No Edge Config token found")
-            return False
-
-        headers = {
-            'Authorization': f'Bearer {EDGE_CONFIG_TOKEN}',
-            'Content-Type': 'application/json'
-        }
-
-        payload = {key: data}
-
-        response = requests.patch(
-            f"{EDGE_CONFIG_BASE_URL}/items",
-            headers=headers,
-            json=payload,
-            timeout=10
-        )
-
-        if response.status_code in [200, 201]:
-            print(f"Successfully saved cache key: {key}")
-            return True
-        else:
-            print(f"Failed to save to Edge Config: {response.status_code} - {response.text}")
-            return False
-    except Exception as e:
-        print(f"Error saving to Edge Config: {e}")
-        return False
-
-
-def image_to_base64(image_path):
-    """Convert image file to base64 string"""
-    try:
-        with open(image_path, "rb") as image_file:
-            image_data = image_file.read()
-            base64_str = base64.b64encode(image_data).decode('utf-8')
-            print(f"Image converted to base64, size: {len(base64_str)} chars")
-            return base64_str
-    except Exception as e:
-        print(f"Error converting image to base64: {e}")
+def normalize_opensea_collection(collection):
+    slug = collection.get('collection') or collection.get('slug') or ''
+    if not slug:
         return None
 
+    return {
+        'kind': 'collection',
+        'id': f'collection:{slug}',
+        'name': collection.get('name') or slug.replace('-', ' ').title(),
+        'collection': 'OpenSea collection',
+        'collection_slug': slug,
+        'image': collection.get('image_url') or collection.get('banner_image_url') or '/static/images/logo.png',
+        'description': collection.get('description') or 'Browse this collection on OpenSea.',
+        'source_url': collection.get('opensea_url') or f'https://opensea.io/collection/{slug}',
+    }
 
-def base64_to_image(base64_string, output_path):
-    """Convert base64 string back to image file"""
-    try:
-        if not base64_string:
-            print("Empty base64 string")
-            return False
 
-        image_data = base64.b64decode(base64_string)
+def normalize_opensea_nft(nft):
+    identifier = nft.get('identifier') or nft.get('token_id') or ''
+    contract = nft.get('contract') or ''
+    if not identifier:
+        return None
 
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    collection_slug = nft.get('collection') or 'opensea'
+    return {
+        'kind': 'nft',
+        'id': f'opensea:{contract}:{identifier}',
+        'name': nft.get('name') or f'NFT #{identifier}',
+        'collection': collection_slug.replace('-', ' ').title(),
+        'collection_slug': collection_slug,
+        'image': nft.get('image_url') or nft.get('display_image_url') or nft.get('image_original_url') or '',
+        'image_url': nft.get('image_url') or nft.get('display_image_url') or nft.get('image_original_url') or '',
+        'source_url': nft.get('opensea_url') or f'https://opensea.io/assets/{nft.get("chain", "ethereum")}/{contract}/{identifier}',
+    }
 
-        with open(output_path, "wb") as image_file:
-            image_file.write(image_data)
 
-        if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
-            print(f"Successfully created image at: {output_path}")
-            return True
-        else:
-            print(f"Failed to create image at: {output_path}")
-            return False
-    except Exception as e:
-        print(f"Error converting base64 to image: {e}")
-        return False
+def search_opensea(query, next_token=''):
+    params = [
+        ('query', query),
+        ('asset_types', 'collection'),
+        ('asset_types', 'nft'),
+        ('limit', 50),
+    ]
+    if next_token:
+        params.append(('next', next_token))
+
+    payload = opensea_get('/search', params)
+    if payload is None:
+        return None, None
+
+    results = []
+    for result in payload.get('results', []):
+        result_type = result.get('type')
+        normalized = None
+        if result_type == 'collection':
+            normalized = normalize_opensea_collection(result.get('collection') or {})
+        elif result_type == 'nft':
+            normalized = normalize_opensea_nft(result.get('nft') or {})
+        if normalized and normalized.get('image'):
+            results.append(normalized)
+    return results, payload.get('next')
+
+
+def list_opensea_collections(next_token=''):
+    params = [('limit', 50), ('chain', 'ethereum'), ('order_by', 'seven_day_volume')]
+    if next_token:
+        params.append(('next', next_token))
+    payload = opensea_get('/collections', params)
+    if payload is None:
+        return None, None
+
+    results = [normalize_opensea_collection(item) for item in payload.get('collections', [])]
+    return [item for item in results if item and item.get('image')], payload.get('next')
+
+
+def list_opensea_collection_nfts(slug, next_token=''):
+    params = [('limit', 50)]
+    if next_token:
+        params.append(('next', next_token))
+    payload = opensea_get(f'/collection/{quote(slug, safe="")}/nfts', params)
+    if payload is None:
+        return None, None
+
+    results = [normalize_opensea_nft(item) for item in payload.get('nfts', [])]
+    return [item for item in results if item and item.get('image')], payload.get('next')
 
 
 def get_device_dimensions(device_type, custom_width=None, custom_height=None):
-    """Get device dimensions based on selection"""
     if device_type == 'custom':
         if custom_width and custom_height:
             try:
@@ -191,8 +241,26 @@ def get_device_dimensions(device_type, custom_width=None, custom_height=None):
     return DEVICE_SIZES.get(device_type, (1125, 2436))
 
 
-def create_wallpaper(img, target_width, target_height):
-    """Create wallpaper with specified dimensions"""
+def load_logo_image(logo_url):
+    if not logo_url:
+        return None
+
+    if logo_url.startswith('/static/'):
+        logo_path = os.path.join(app.root_path, logo_url.lstrip('/').replace('/', os.sep))
+        with Image.open(logo_path) as logo:
+            return logo.convert('RGBA')
+
+    if not logo_url.startswith(('http://', 'https://')):
+        raise ValueError('Collection logo must be a full image URL.')
+
+    response = requests.get(logo_url, timeout=10)
+    if response.status_code != 200:
+        raise ValueError('The collection logo could not be downloaded.')
+    with Image.open(BytesIO(response.content)) as logo:
+        return logo.convert('RGBA')
+
+
+def create_wallpaper(img, target_width, target_height, gradient_style='soft', collection_logo=None):
     pix = img.load()
     palette_rgb = pix[30, 1] if img.width > 30 else pix[0, 0]
 
@@ -200,6 +268,7 @@ def create_wallpaper(img, target_width, target_height):
         cropped_img = img.crop((0, 20, img.width, img.height))
     else:
         cropped_img = img
+
 
     main_img_height = int(target_height * 0.7)
     gradient_height = target_height - main_img_height
@@ -210,23 +279,26 @@ def create_wallpaper(img, target_width, target_height):
 
     final_img.paste(resized_img, (0, gradient_height))
 
-    for y in range(gradient_height):
-        opacity = 1.0 - (y / gradient_height)
-        gradient_intensity = int(255 * opacity * 0.3)
+    gradient_strength = GRADIENT_STYLES.get(gradient_style, GRADIENT_STYLES['soft'])
+    if gradient_strength > 0:
+        for y in range(gradient_height):
+            opacity = 1.0 - (y / gradient_height)
+            gradient_intensity = int(255 * opacity * gradient_strength)
 
-        blended_color = (
-            max(0, palette_rgb[0] - gradient_intensity),
-            max(0, palette_rgb[1] - gradient_intensity),
-            max(0, palette_rgb[2] - gradient_intensity)
-        )
+            blended_color = (
+                max(0, palette_rgb[0] - gradient_intensity),
+                max(0, palette_rgb[1] - gradient_intensity),
+                max(0, palette_rgb[2] - gradient_intensity)
+            )
 
-        draw = ImageDraw.Draw(final_img)
-        draw.line([(0, y), (target_width, y)], fill=blended_color)
+            draw = ImageDraw.Draw(final_img)
+            draw.line([(0, y), (target_width, y)], fill=blended_color)
+
 
     seam_y = gradient_height
     blur_zone_height = min(150, gradient_height // 3)
 
-    if blur_zone_height > 0:
+    if gradient_strength > 0 and blur_zone_height > 0:
         blur_start_y = max(0, seam_y - blur_zone_height // 2)
         blur_end_y = min(target_height, seam_y + blur_zone_height // 2)
 
@@ -236,57 +308,60 @@ def create_wallpaper(img, target_width, target_height):
             blurred = blur_zone.filter(ImageFilter.GaussianBlur(radius=blur_radius))
             final_img.paste(blurred, (0, blur_start_y))
 
+    if collection_logo is not None:
+        logo = collection_logo.copy().convert('RGBA')
+        max_logo_size = max(96, int(min(target_width, target_height) * 0.14))
+        logo.thumbnail((max_logo_size, max_logo_size), Image.Resampling.LANCZOS)
+        margin = max(28, int(min(target_width, target_height) * 0.045))
+        logo_x = target_width - logo.width - margin
+        logo_y = margin
+        plate_padding = max(14, int(max_logo_size * 0.12))
+        plate = Image.new('RGBA', (logo.width + plate_padding * 2, logo.height + plate_padding * 2), (0, 0, 0, 155))
+        plate_draw = ImageDraw.Draw(plate)
+        plate_draw.rounded_rectangle((0, 0, plate.width - 1, plate.height - 1), radius=plate_padding, outline=(255, 255, 255, 70), width=2)
+        final_img.paste(plate, (logo_x - plate_padding, logo_y - plate_padding), plate)
+        final_img.paste(logo, (logo_x, logo_y), logo)
+
     return final_img
 
 
-def ensure_image_exists(session_id, cache_key=None):
-    """Ensure the image file exists, recreate from cache if necessary"""
-    temp_dir = get_temp_dir()
-    expected_path = os.path.join(temp_dir, f'image_converted_{session_id}.png')
-
-    if os.path.exists(expected_path) and os.path.getsize(expected_path) > 0:
-        print(f"Image file exists at: {expected_path}")
-        return expected_path
-
-    if cache_key:
-        print(f"Attempting to recreate image from cache: {cache_key}")
-        cached_data = get_from_edge_config(cache_key)
-        if cached_data and 'image_base64' in cached_data:
-            success = base64_to_image(cached_data['image_base64'], expected_path)
-            if success:
-                print("Successfully recreated image from cache")
-                return expected_path
-            else:
-                print("Failed to recreate image from cache")
-
-    print(f"Image not found and couldn't be recreated: {expected_path}")
-    return None
+def save_wallpaper(img, target_width, target_height, gradient_style='soft', logo_url=''):
+    collection_logo = load_logo_image(logo_url)
+    tmp_folder = os.path.join(app.root_path, 'tmp')
+    os.makedirs(tmp_folder, exist_ok=True)
+    rgb_image = img.convert('RGB')
+    rgb_image.save(os.path.join(tmp_folder, 'target_img.png'))
+    final_img = create_wallpaper(rgb_image, target_width, target_height, gradient_style, collection_logo)
+    final_img.save(os.path.join(tmp_folder, 'image_converted.png'))
 
 
 @app.route('/', methods=["POST", "GET"])
 def main_page():
     if request.method == "GET":
-        cleanup_old_files()
-        return render_template('index.html')
+        tmp_folder = 'tmp'
+        try:
+            for filename in os.listdir(tmp_folder):
+                file_path = os.path.join(tmp_folder, filename)
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)
+        except Exception as e:
+            print(e)
+        return render_home()
     else:
         img_address = request.form['pname']
         device_type = request.form.get('device', 'iphone_x')
         custom_width = request.form.get('custom_width')
         custom_height = request.form.get('custom_height')
+        gradient_style = request.form.get('gradient_style', 'soft')
+        logo_url = request.form.get('logo_url', '').strip()
 
         target_width, target_height = get_device_dimensions(device_type, custom_width, custom_height)
 
         if target_width is None or target_height is None:
             flash('Invalid device dimensions. Please check your custom size values.', 'error')
-            return render_template('index.html')
+            return render_home()
 
         try:
-            session_id = generate_session_id()
-            session['session_id'] = session_id
-            session.permanent = True
-
-            print(f"Generated session ID: {session_id}")
-
             response = requests.get(img_address, timeout=15)
             html_content = response.text
             soup = BeautifulSoup(html_content, 'html.parser')
@@ -299,194 +374,196 @@ def main_page():
                     img_src = img_tag["content"]
                     title = title_tag["content"]
 
-                    print(f"Found image: {img_src}")
-                    print(f"Found title: {title}")
-
-                    cache_key = generate_cache_key(img_src, device_type, target_width, target_height)
-                    print(f"Generated cache key: {cache_key}")
-
-                    temp_dir = get_temp_dir()
-                    converted_path = os.path.join(temp_dir, f'image_converted_{session_id}.png')
-                    target_path = os.path.join(temp_dir, f'target_img_{session_id}.png')
-
-                    cached_data = get_from_edge_config(cache_key)
-
-                    if cached_data and 'image_base64' in cached_data:
-                        print("Loading wallpaper from cache...")
-                        success = base64_to_image(cached_data['image_base64'], converted_path)
-
-                        if success:
-                            session['title'] = cached_data.get('title', title)
-                            session['img_src'] = cached_data.get('img_src', img_src)
-                            session['device_type'] = device_type
-                            session['dimensions'] = f"{target_width} × {target_height}"
-                            session['cache_key'] = cache_key
-                            session['image_path'] = converted_path
-                            session['from_cache'] = True
-
-                            print("Successfully loaded from cache, redirecting...")
-                            return redirect('/create')
-                        else:
-                            print("Failed to load from cache, generating new...")
-
-                    print("Generating new wallpaper...")
                     img_response = requests.get(img_src, timeout=15)
-
                     if img_response.status_code != 200:
-                        raise Exception(f"Failed to download image: {img_response.status_code}")
-
+                        raise ValueError('The NFT image could not be downloaded.')
                     img = Image.open(BytesIO(img_response.content))
-                    print(f"Original image size: {img.size}")
 
-                    img.save(target_path)
-                    print(f"Saved original image to: {target_path}")
-
-                    final_img = create_wallpaper(img, target_width, target_height)
-                    final_img.save(converted_path)
-                    print(f"Created wallpaper at: {converted_path}")
-
-                    if not os.path.exists(converted_path) or os.path.getsize(converted_path) == 0:
-                        raise Exception("Failed to create wallpaper image")
-
-                    try:
-                        image_base64 = image_to_base64(converted_path)
-                        if image_base64:
-                            cache_data = {
-                                'image_base64': image_base64,
-                                'title': title,
-                                'img_src': img_src,
-                                'device_type': device_type,
-                                'target_width': target_width,
-                                'target_height': target_height,
-                                'created_at': datetime.now().isoformat()
-                            }
-
-                            save_success = save_to_edge_config(cache_key, cache_data)
-                            if save_success:
-                                print("Wallpaper saved to cache successfully!")
-                            else:
-                                print("Failed to save wallpaper to cache (continuing anyway)")
-                    except Exception as cache_error:
-                        print(f"Cache save error (continuing anyway): {cache_error}")
+                    save_wallpaper(img, target_width, target_height, gradient_style, logo_url)
 
                     session['title'] = title
                     session['img_src'] = img_src
+                    session['source_url'] = img_address
                     session['device_type'] = device_type
                     session['dimensions'] = f"{target_width} × {target_height}"
-                    session['cache_key'] = cache_key
-                    session['image_path'] = converted_path
-                    session['from_cache'] = False
+                    session['gradient_style'] = gradient_style
+                    session['logo_url'] = logo_url
 
-                    print("Session data stored, redirecting to create page...")
                     return redirect('/create')
                 else:
                     flash('Unable to retrieve NFT details. Please check the link and try again.', 'error')
-                    return render_template('index.html')
+                    return render_home()
             else:
-                flash(f'Unable to retrieve NFT details. HTTP {response.status_code}', 'error')
-                return render_template('index.html')
+                flash('Unable to retrieve NFT details. Please check the link and try again.', 'error')
+                return render_home()
 
         except Exception as e:
-            print(f"Error in main_page: {str(e)}")
             flash(f'An error occurred: {str(e)}', 'error')
-            return render_template('index.html')
+            return render_home()
+
+
+@app.route('/explore')
+def explore_page():
+    query = request.args.get('q', '').strip()
+    active_collection = request.args.get('collection', 'all').strip().lower() or 'all'
+    sort = request.args.get('sort', 'featured').strip().lower() or 'featured'
+    source = request.args.get('source', 'local').strip().lower() or 'local'
+    live_collection = request.args.get('collection_slug', '').strip()
+    next_token = request.args.get('next', '').strip()
+
+    nfts = NFT_CATALOG[:]
+    if active_collection != 'all':
+        nfts = [nft for nft in nfts if nft['collection_slug'] == active_collection]
+    if query:
+        needle = query.lower()
+        nfts = [
+            nft for nft in nfts
+            if needle in nft['name'].lower() or needle in nft['collection'].lower()
+        ]
+    if sort == 'a-z':
+        nfts.sort(key=lambda nft: nft['name'])
+    elif sort == 'collection':
+        nfts.sort(key=lambda nft: (nft['collection'], nft['name']))
+
+    live_results = []
+    live_next = None
+    live_error = None
+    if source == 'opensea':
+        if not OPENSEA_API_KEY:
+            live_error = 'Add OPENSEA_API_KEY to .env to enable live OpenSea discovery.'
+        elif live_collection:
+            live_results, live_next = list_opensea_collection_nfts(live_collection, next_token)
+        elif query:
+            live_results, live_next = search_opensea(query, next_token)
+        else:
+            live_results, live_next = list_opensea_collections(next_token)
+
+        if live_results is None:
+            live_error = 'OpenSea is unavailable right now. Try again in a moment.'
+            live_results = []
+
+    return render_template(
+        'explore.html',
+        **catalog_context(),
+        nfts=nfts,
+        active_collection=active_collection,
+        query=query,
+        sort=sort,
+        total_results=len(nfts),
+        source=source,
+        live_results=live_results,
+        live_next=live_next,
+        live_collection=live_collection,
+        live_error=live_error,
+        opensea_configured=bool(OPENSEA_API_KEY),
+    )
+
+
+@app.route('/catalog/generate', methods=['POST'])
+def catalog_generate():
+    nft_id = request.form.get('nft_id', '').strip()
+    nft = next((item for item in NFT_CATALOG if item['id'] == nft_id), None)
+    if nft is None:
+        flash('That catalog item is no longer available. Choose another NFT.', 'error')
+        return redirect(url_for('explore_page'))
+
+    device_type = request.form.get('device', 'iphone_x')
+    custom_width = request.form.get('custom_width')
+    custom_height = request.form.get('custom_height')
+    gradient_style = request.form.get('gradient_style', 'soft')
+    logo_url = request.form.get('logo_url', '').strip()
+    target_width, target_height = get_device_dimensions(device_type, custom_width, custom_height)
+    if target_width is None or target_height is None:
+        flash('Invalid device dimensions. Please check your custom size values.', 'error')
+        return redirect(url_for('explore_page'))
+
+    image_path = os.path.join(app.root_path, nft['image'].lstrip('/').replace('/', os.sep))
+    try:
+        os.makedirs(os.path.join(app.root_path, 'tmp'), exist_ok=True)
+        with Image.open(image_path) as source_image:
+            save_wallpaper(source_image, target_width, target_height, gradient_style, logo_url)
+
+        session['title'] = nft['name']
+        session['img_src'] = nft['image']
+        session['source_url'] = url_for('explore_page', collection=nft['collection_slug'], _external=True)
+        session['device_type'] = device_type
+        session['dimensions'] = f"{target_width} × {target_height}"
+        session['gradient_style'] = gradient_style
+        session['logo_url'] = logo_url
+        return redirect(url_for('create_page'))
+    except Exception as error:
+        flash(f'Unable to prepare this NFT: {error}', 'error')
+        return redirect(url_for('explore_page'))
+
+
+@app.route('/marketplace/generate', methods=['POST'])
+def marketplace_generate():
+    image_url = request.form.get('image_url', '').strip()
+    title = request.form.get('title', 'OpenSea NFT').strip()[:200]
+    source_url = request.form.get('source_url', '').strip()
+    device_type = request.form.get('device', 'iphone_x')
+    custom_width = request.form.get('custom_width')
+    custom_height = request.form.get('custom_height')
+    gradient_style = request.form.get('gradient_style', 'soft')
+    logo_url = request.form.get('logo_url', '').strip()
+    target_width, target_height = get_device_dimensions(device_type, custom_width, custom_height)
+
+    if not image_url.startswith(('http://', 'https://')):
+        flash('This marketplace item does not have a usable image URL.', 'error')
+        return redirect(url_for('explore_page', source='opensea'))
+    if target_width is None or target_height is None:
+        flash('Invalid device dimensions. Please check your custom size values.', 'error')
+        return redirect(url_for('explore_page', source='opensea'))
+
+    try:
+        image_response = requests.get(image_url, timeout=15)
+        if image_response.status_code != 200:
+            raise ValueError('The marketplace image could not be downloaded.')
+
+        os.makedirs(os.path.join(app.root_path, 'tmp'), exist_ok=True)
+        with Image.open(BytesIO(image_response.content)) as source_image:
+            save_wallpaper(source_image, target_width, target_height, gradient_style, logo_url)
+
+        session['title'] = title or 'OpenSea NFT'
+        session['img_src'] = image_url
+        session['source_url'] = source_url or image_url
+        session['device_type'] = device_type
+        session['dimensions'] = f"{target_width} × {target_height}"
+        session['gradient_style'] = gradient_style
+        session['logo_url'] = logo_url
+        return redirect(url_for('create_page'))
+    except Exception as error:
+        flash(f'Unable to prepare this marketplace NFT: {error}', 'error')
+        return redirect(url_for('explore_page', source='opensea'))
 
 
 @app.route('/image/<filename>')
 def get_image(filename):
-    """Serve images from session-specific files"""
-    session_id = session.get('session_id')
-    if not session_id:
-        print("No session ID found")
-        return "Session expired", 404
-
-    if filename == 'image_converted.png':
-        actual_filename = f'image_converted_{session_id}.png'
-    else:
-        actual_filename = filename
-
-    temp_dir = get_temp_dir()
-    file_path = os.path.join(temp_dir, actual_filename)
-
-    print(f"Looking for image at: {file_path}")
-
-    if not os.path.exists(file_path):
-        print(f"Image not found, attempting to recreate...")
-        cache_key = session.get('cache_key')
-        if cache_key:
-            image_path = ensure_image_exists(session_id, cache_key)
-            if image_path:
-                return send_from_directory(temp_dir, actual_filename)
-
-        print("Could not find or recreate image")
-        return "Image not found", 404
-
-    return send_from_directory(temp_dir, actual_filename)
-
-
-@app.route('/cached-image/<cache_key>')
-def get_cached_image(cache_key):
-    """Serve image directly from Edge Config cache"""
-    try:
-        cached_data = get_from_edge_config(cache_key)
-
-        if cached_data and 'image_base64' in cached_data:
-            session_id = session.get('session_id', 'temp')
-            temp_dir = get_temp_dir()
-            temp_path = os.path.join(temp_dir, f'cached_{session_id}_{cache_key}.png')
-            success = base64_to_image(cached_data['image_base64'], temp_path)
-
-            if success:
-                return send_file(temp_path, mimetype='image/png')
-
-        return redirect(url_for('get_image', filename='image_converted.png'))
-    except Exception as e:
-        print(f"Error serving cached image: {e}")
-        return redirect(url_for('get_image', filename='image_converted.png'))
+    return send_from_directory('tmp', filename)
 
 
 @app.route('/create', methods=["POST", "GET"])
 def create_page():
     if request.method == "GET":
-        print(f"Session data: {dict(session)}")
-
-        required_keys = ['title', 'img_src', 'session_id']
-        missing_keys = [key for key in required_keys if key not in session]
-
-        if missing_keys:
-            print(f"Missing session keys: {missing_keys}")
+        if 'title' not in session or 'img_src' not in session:
             flash('Session expired. Please generate a new wallpaper.', 'error')
-            return redirect(url_for('main_page'))
-
-        session_id = session.get('session_id')
-        cache_key = session.get('cache_key')
-
-        image_path = ensure_image_exists(session_id, cache_key)
-        if not image_path:
-            flash('Unable to load wallpaper. Please generate a new one.', 'error')
             return redirect(url_for('main_page'))
 
         return render_template('create.html',
                                img_src=session['img_src'],
+                               source_url=session.get('source_url', session['img_src']),
                                art_title=session['title'],
                                device_type=session.get('device_type', 'Unknown'),
                                dimensions=session.get('dimensions', 'Unknown'),
-                               cache_key=session.get('cache_key', ''),
-                               from_cache=session.get('from_cache', False),
+                               gradient_style=session.get('gradient_style', 'soft'),
+                               logo_url=session.get('logo_url', ''),
                                time_now=datetime.now().timestamp())
 
 
 @app.route('/download')
 def download_page():
-    session_id = session.get('session_id')
-    if not session_id:
-        flash('Session expired. Please generate a new wallpaper.', 'error')
-        return redirect(url_for('main_page'))
-
-    cache_key = session.get('cache_key')
-    image_path = ensure_image_exists(session_id, cache_key)
-
-    if not image_path:
+    path = "tmp/image_converted.png"
+    if not os.path.exists(path):
         flash('No wallpaper found. Please generate a new one.', 'error')
         return redirect(url_for('main_page'))
 
@@ -497,42 +574,7 @@ def download_page():
 
     filename = f"{clean_title}_{device_type}_wallpaper.png"
 
-    return send_file(image_path, as_attachment=True, download_name=filename)
-
-
-@app.route('/debug')
-def debug_page():
-    """Debug endpoint to check session and file status"""
-    session_id = session.get('session_id')
-    temp_dir = get_temp_dir()
-
-    debug_info = {
-        'session_id': session_id,
-        'session_data': dict(session),
-        'temp_dir': temp_dir,
-        'files': []
-    }
-
-    if session_id:
-        expected_path = os.path.join(temp_dir, f'image_converted_{session_id}.png')
-        debug_info['expected_path'] = expected_path
-        debug_info['file_exists'] = os.path.exists(expected_path)
-        if os.path.exists(expected_path):
-            debug_info['file_size'] = os.path.getsize(expected_path)
-
-    try:
-        for filename in os.listdir(temp_dir):
-            if filename.startswith(('image_converted_', 'target_img_', 'cached_')):
-                file_path = os.path.join(temp_dir, filename)
-                debug_info['files'].append({
-                    'filename': filename,
-                    'size': os.path.getsize(file_path),
-                    'modified': os.path.getmtime(file_path)
-                })
-    except Exception as e:
-        debug_info['list_error'] = str(e)
-
-    return jsonify(debug_info)
+    return send_file(path, as_attachment=True, download_name=filename)
 
 
 if __name__ == '__main__':

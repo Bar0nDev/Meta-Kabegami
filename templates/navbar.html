@@ -1,4 +1,17 @@
-<nav class="navbar">
-    <a href="{{ url_for('main_page') }}" style="height: 100%;"><img src="static/images/logo.png" alt="Meta Kabegami Logo" class="nav-brand"></a>
-    <h1 class="nav-text">72 6e 64 6d 73</h1>
-</nav>
+<header class="site-header">
+    <div class="nav-shell">
+        <a class="brand" href="{{ url_for('main_page') }}" aria-label="Meta Kabegami home">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="" class="brand-mark">
+            <span class="brand-name">Meta Kabegami</span>
+        </a>
+
+        <nav class="primary-nav" aria-label="Primary navigation">
+            <a class="nav-link" href="{{ url_for('explore_page') }}">Explore <span aria-hidden="true">↗</span></a>
+            <a class="nav-link" href="{{ url_for('main_page') }}#generator">Create</a>
+        </nav>
+
+        <a class="nav-cta" href="{{ url_for('main_page') }}#generator">
+            Make a wallpaper <span aria-hidden="true">→</span>
+        </a>
+    </div>
+</header>

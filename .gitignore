@@ -2,3 +2,6 @@
 drivers/chromedriver.exe
 env
 ,venv
+
+tmp/*.png
+__pycache__/

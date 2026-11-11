@@ -1,259 +1,44 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Meta Kabegami - Wallpaper Generated</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="static/css/styles.css">
-    <link rel="icon" href="static/images/logo.png">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Your generated Meta Kabegami wallpaper.">
+    <title>{{ art_title }} — Meta Kabegami</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        .loading-spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #3498db;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .image-error {
-            background-color: #f8f9fa;
-            border: 2px dashed #dee2e6;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #6c757d;
-            font-size: 14px;
-            min-height: 200px;
-        }
-
-        .preview-status {
-            text-align: center;
-            margin-top: 10px;
-            font-size: 12px;
-            color: #666;
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-    <div class="main-container">
+    <div class="site-frame">
         {% include 'navbar.html' %}
-
-        <div class="floating-nfts">
-            <img src="static/images/NFT-images/Azuki-1.png" class="floating-nft" alt="Azuki NFT">
-            <img src="static/images/NFT-images/BAYC-1.png" class="floating-nft" alt="BAYC NFT">
-            <img src="static/images/NFT-images/Kitaro-1.png" class="floating-nft" alt="Kitaro NFT">
-            <img src="static/images/NFT-images/Azuki-2.png" class="floating-nft" alt="Azuki NFT">
-            <img src="static/images/NFT-images/BAYC-2.png" class="floating-nft" alt="BAYC NFT">
-            <img src="static/images/NFT-images/Kitaro-2.png" class="floating-nft" alt="Kitaro NFT">
-            <img src="static/images/NFT-images/Azuki-3.png" class="floating-nft" alt="Azuki NFT">
-            <img src="static/images/NFT-images/BAYC-3.png" class="floating-nft" alt="BAYC NFT">
-            <img src="static/images/NFT-images/Kitaro-3.png" class="floating-nft" alt="Kitaro NFT">
-            <img src="static/images/NFT-images/Kitaro-4.png" class="floating-nft" alt="Kitaro NFT">
-        </div>
-
-        <div class="create-body">
-            <div class="container">
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        <div class="flash-messages mb-4">
-                            {% for category, message in messages %}
-                                <div class="alert alert-{{ 'danger' if category == 'error' else category }}">
-                                    {{ message }}
-                                </div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                {% endwith %}
-
-                <div class="row align-items-center">
-                    <div class="col-lg-6 col-md-12 mb-4">
-                        <div class="preview-section">
-                            <h2 class="section-title">Preview</h2>
-                            <div class="iphone-container">
-                                <div class="iphone-x" id="preview-container">
-                                    <div class="loading-spinner" id="loading-spinner"></div>
-                                    <div class="image-error" id="error-message" style="display: none;">
-                                        ⚠️ Unable to load preview
-                                    </div>
-                                    <i></i>
-                                    <b></b>
-                                    <s>10:24</s>
-                                </div>
-                            </div>
-                            <div class="preview-status" id="preview-status">Loading wallpaper...</div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-6 col-md-12">
-                        <div class="nft-info">
-                            <div class="nft-info-details">
-                                <h1 class="art-title">{{ art_title }}</h1>
-                                <div class="img-container">
-                                    <img src="{{ img_src }}" class="src-img" alt="NFT Image"/>
-                                </div>
-
-                                <div class="wallpaper-info">
-                                    <div class="info-card">
-                                        <h3>Wallpaper Details</h3>
-                                        <div class="info-grid">
-                                            <div class="info-item">
-                                                <span class="info-label">Device:</span>
-                                                <span class="info-value">{{ device_type.replace('_', ' ').title() }}</span>
-                                            </div>
-                                            <div class="info-item">
-                                                <span class="info-label">Resolution:</span>
-                                                <span class="info-value">{{ dimensions }}</span>
-                                            </div>
-                                            <div class="info-item">
-                                                <span class="info-label">Format:</span>
-                                                <span class="info-value">PNG</span>
-                                            </div>
-                                            <div class="info-item">
-                                                <span class="info-label">Quality:</span>
-                                                <span class="info-value">High Definition</span>
-                                            </div>
-                                            <div class="info-item">
-                                                <span class="info-label">Source:</span>
-                                                <span class="info-value">{% if from_cache %}📦 Cached{% else %}🔄 Generated{% endif %}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="button-row">
-                                    <a href="{{ url_for('download_page') }}" class="btn-a">
-                                        <button class="btn btn-download">
-                                            <span>📥</span>
-                                            Download Wallpaper
-                                        </button>
-                                    </a>
-                                    <a href="{{ url_for('main_page') }}" class="btn-a">
-                                        <button class="btn btn-home">
-                                            <span>🏠</span>
-                                            Create Another
-                                        </button>
-                                    </a>
-                                </div>
-                            </div>
+        <main class="result-page container">
+            <div class="result-kicker"><a href="{{ url_for('main_page') }}">← Back to studio</a><span>Wallpaper ready</span></div>
+            <section class="result-layout">
+                <div class="result-preview-column">
+                    <div class="result-heading"><p class="eyebrow">Your composition</p><h1>Looks good on you.</h1><p>Preview the crop below, then save the full-resolution PNG to your device.</p></div>
+                    <div class="phone-stage">
+                        <div class="phone-shadow"></div>
+                        <div class="phone-frame" style="background-image: url('{{ url_for('get_image', filename='image_converted.png') }}?timestamp={{ time_now }}');" role="img" aria-label="Generated wallpaper preview">
+                            <span class="phone-island"></span><span class="phone-time">10:24</span><span class="phone-home"></span>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+
+                <aside class="result-details">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}<div class="flash-stack" role="alert">{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+                    {% endwith %}
+                    <div class="source-card"><div class="source-image"><img src="{{ img_src }}" alt="{{ art_title }} artwork"></div><div><p class="eyebrow">Source artwork</p><h2>{{ art_title }}</h2><a href="{{ source_url }}" target="_blank" rel="noreferrer">Open original ↗</a></div></div>
+                    <div class="details-card"><div class="details-card-header"><p class="eyebrow">Export details</p><span class="ready-badge"><span></span> Ready</span></div><dl class="details-list"><div><dt>Device</dt><dd>{{ device_type.replace('_', ' ').title() }}</dd></div><div><dt>Resolution</dt><dd>{{ dimensions }}</dd></div><div><dt>Top fade</dt><dd>{{ gradient_style.title() }}</dd></div><div><dt>Collection mark</dt><dd>{{ 'Added' if logo_url else 'None' }}</dd></div><div><dt>Format</dt><dd>PNG</dd></div><div><dt>Quality</dt><dd>High definition</dd></div></dl></div>
+                    <div class="result-actions"><a class="button button-primary" href="{{ url_for('download_page') }}"><span>Download wallpaper</span><span aria-hidden="true">↓</span></a><a class="button button-secondary" href="{{ url_for('main_page') }}#generator">Create another <span aria-hidden="true">↗</span></a></div>
+                    <p class="result-note">Your image is generated locally for this session. Nothing is added to a wallet or marketplace.</p>
+                </aside>
+            </section>
+        </main>
+        <footer class="site-footer container"><span>Meta Kabegami</span><span>Made for screens, not marketplaces.</span><a href="{{ url_for('explore_page') }}">Back to the shelf ↗</a></footer>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const previewContainer = document.getElementById('preview-container');
-            const loadingSpinner = document.getElementById('loading-spinner');
-            const errorMessage = document.getElementById('error-message');
-            const previewStatus = document.getElementById('preview-status');
-
-            // Multiple image URLs to try
-            const imageUrls = [
-                // Try cached image first if available
-                {% if cache_key %}
-                "{{ url_for('get_cached_image', cache_key=cache_key) }}?t={{ time_now }}",
-                {% endif %}
-                // Fallback to regular image
-                "{{ url_for('get_image', filename='image_converted.png') }}?t={{ time_now }}",
-                // Additional fallback with different timestamp
-                "{{ url_for('get_image', filename='image_converted.png') }}?t=" + Date.now()
-            ];
-
-            let currentUrlIndex = 0;
-
-            function tryLoadImage(url) {
-                return new Promise((resolve, reject) => {
-                    const testImg = new Image();
-                    testImg.onload = function() {
-                        resolve(url);
-                    };
-                    testImg.onerror = function() {
-                        reject(new Error('Failed to load image: ' + url));
-                    };
-                    testImg.src = url;
-                });
-            }
-
-            function loadImageWithFallback() {
-                if (currentUrlIndex >= imageUrls.length) {
-                    // All URLs failed
-                    loadingSpinner.style.display = 'none';
-                    errorMessage.style.display = 'flex';
-                    previewStatus.textContent = 'Failed to load wallpaper';
-                    previewStatus.style.color = '#dc3545';
-                    return;
-                }
-
-                const currentUrl = imageUrls[currentUrlIndex];
-                console.log('Attempting to load:', currentUrl);
-
-                tryLoadImage(currentUrl)
-                    .then(url => {
-                        // Success - set background image
-                        previewContainer.style.backgroundImage = `url('${url}')`;
-                        loadingSpinner.style.display = 'none';
-                        previewStatus.textContent = 'Wallpaper loaded successfully';
-                        previewStatus.style.color = '#28a745';
-                        console.log('Successfully loaded:', url);
-                    })
-                    .catch(error => {
-                        console.warn('Failed to load image:', error.message);
-                        currentUrlIndex++;
-                        // Try next URL after a short delay
-                        setTimeout(loadImageWithFallback, 500);
-                    });
-            }
-
-            // Start loading process
-            loadImageWithFallback();
-
-            // Add click handler for retry
-            errorMessage.addEventListener('click', function() {
-                errorMessage.style.display = 'none';
-                loadingSpinner.style.display = 'block';
-                previewStatus.textContent = 'Retrying...';
-                previewStatus.style.color = '#666';
-                currentUrlIndex = 0;
-                loadImageWithFallback();
-            });
-
-            // Debug information
-            console.log('Available image URLs:', imageUrls);
-            console.log('Cache key:', '{{ cache_key }}');
-            console.log('From cache:', {{ from_cache|lower }});
-        });
-
-        // Add retry functionality for failed downloads
-        document.querySelector('.btn-download').addEventListener('click', function(e) {
-            const button = this;
-            const originalText = button.innerHTML;
-
-            // Show loading state
-            button.innerHTML = '<span>⏳</span> Preparing download...';
-            button.disabled = true;
-
-            // Reset button after 3 seconds
-            setTimeout(() => {
-                button.innerHTML = originalText;
-                button.disabled = false;
-            }, 3000);
-        });
-    </script>
 </body>
 </html>
