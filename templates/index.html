@@ -23,21 +23,24 @@
                     <p class="hero-lede">Turn a favorite NFT into a wallpaper with the right crop, the right resolution, and none of the fiddling.</p>
                     <div class="hero-actions">
                         <a class="button button-primary" href="#generator">Create a wallpaper <span aria-hidden="true">↓</span></a>
-                        <a class="text-link" href="{{ url_for('explore_page') }}">Browse the catalog <span aria-hidden="true">↗</span></a>
+                        <a class="text-link" href="{{ url_for('explore_page') }}">Browse OpenSea <span aria-hidden="true">↗</span></a>
                     </div>
                     <div class="hero-stats" aria-label="Catalog stats">
-                        <div><strong>{{ nft_count }}</strong><span>NFTs ready</span></div>
-                        <div><strong>{{ collection_count }}</strong><span>Collections</span></div>
+                        <div><strong>LIVE</strong><span>OpenSea discovery</span></div>
+                        <div><strong>50</strong><span>NFTs per page</span></div>
                         <div><strong>PNG</strong><span>High-res export</span></div>
                     </div>
                 </div>
 
                 <div class="hero-art" aria-label="Featured NFT artwork">
                     <div class="hero-art-glow"></div>
-                    <figure class="hero-tile hero-tile-back"><img src="{{ url_for('static', filename='images/NFT-images/Azuki-2.png') }}" alt="Azuki artwork"></figure>
-                    <figure class="hero-tile hero-tile-main"><img src="{{ url_for('static', filename='images/NFT-images/Kitaro-1.png') }}" alt="Kitaro artwork"></figure>
-                    <figure class="hero-tile hero-tile-front"><img src="{{ url_for('static', filename='images/NFT-images/BAYC-2.png') }}" alt="BAYC artwork"></figure>
-                    <div class="hero-art-caption"><span>Selected from the shelf</span><strong>01 — 03</strong></div>
+                    {% set hero_one = live_collections[0] if live_collections|length > 0 else none %}
+                    {% set hero_two = live_collections[1] if live_collections|length > 1 else none %}
+                    {% set hero_three = live_collections[2] if live_collections|length > 2 else none %}
+                    <figure class="hero-tile hero-tile-back"><img src="{{ hero_one.image if hero_one else url_for('static', filename='images/logo.png') }}" alt="{{ hero_one.name if hero_one else 'OpenSea collection' }}"></figure>
+                    <figure class="hero-tile hero-tile-main"><img src="{{ hero_two.image if hero_two else url_for('static', filename='images/logo.png') }}" alt="{{ hero_two.name if hero_two else 'OpenSea collection' }}"></figure>
+                    <figure class="hero-tile hero-tile-front"><img src="{{ hero_three.image if hero_three else url_for('static', filename='images/logo.png') }}" alt="{{ hero_three.name if hero_three else 'OpenSea collection' }}"></figure>
+                    <div class="hero-art-caption"><span>Selected from OpenSea</span><strong>01 — 03</strong></div>
                 </div>
             </section>
 
@@ -100,6 +103,11 @@
                                         <option value="none">None · full image</option>
                                     </select>
                                 </div>
+                                <div class="field-group scale-field">
+                                    <label class="field-label" for="art_scale">Artwork scale <output id="art-scale-value">100%</output></label>
+                                    <input type="range" id="art_scale" name="art_scale" min="60" max="140" step="5" value="100">
+                                    <p class="range-hint">60% smaller · 140% closer</p>
+                                </div>
                                 <div class="field-group">
                                     <label class="field-label" for="logo_url">Collection logo <span>Image URL</span></label>
                                     <input type="url" id="logo_url" name="logo_url" placeholder="https://.../logo.png" autocomplete="url">
@@ -113,37 +121,38 @@
 
             <section class="collection-section container" id="collections">
                 <div class="section-heading">
-                    <div><p class="eyebrow">02 / Explore</p><h2>Find your next favorite.</h2></div>
-                    <a class="text-link" href="{{ url_for('explore_page') }}">See all NFTs <span aria-hidden="true">↗</span></a>
+                    <div><p class="eyebrow">02 / OpenSea live</p><h2>Find your next favorite.</h2></div>
+                    <a class="text-link" href="{{ url_for('explore_page') }}">Explore the marketplace <span aria-hidden="true">↗</span></a>
                 </div>
-                <div class="collection-grid">
-                    {% for collection in collections %}
-                        <a class="collection-card" href="{{ url_for('explore_page', collection=collection.slug) }}">
-                            <div class="collection-image"><img src="{{ collection.cover }}" alt="{{ collection.name }} collection cover" loading="lazy"><span class="collection-index">0{{ loop.index }}</span></div>
-                            <div class="collection-copy"><p>{{ collection.eyebrow }}</p><h3>{{ collection.name }}</h3><span>{{ collection.description }}</span></div>
-                            <span class="card-arrow" aria-hidden="true">↗</span>
-                        </a>
-                    {% endfor %}
-                </div>
+                {% if live_collections %}
+                    <div class="collection-grid">
+                        {% for collection in live_collections %}
+                            <a class="collection-card" href="{{ url_for('explore_page', collection_slug=collection.collection_slug) }}">
+                                <div class="collection-image"><img src="{{ collection.image }}" alt="{{ collection.name }} collection cover" loading="lazy"><span class="collection-index">0{{ loop.index }}</span></div>
+                                <div class="collection-copy"><p>OpenSea collection</p><h3>{{ collection.name }}</h3><span>{{ collection.description }}</span></div>
+                                <span class="card-arrow" aria-hidden="true">↗</span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="live-placeholder"><span class="empty-mark">◎</span><p>{% if opensea_configured %}OpenSea is taking a moment. Explore the live marketplace to try again.{% else %}Add your OpenSea API key to unlock live collections.{% endif %}</p><a class="button button-secondary" href="{{ url_for('explore_page') }}">Open live marketplace <span aria-hidden="true">↗</span></a></div>
+                {% endif %}
             </section>
 
-            <section class="featured-section container">
+            <section class="featured-section container live-callout">
                 <div class="section-heading">
-                    <div><p class="eyebrow">03 / The shelf</p><h2>Ready to be resized.</h2></div>
-                    <span class="section-meta">{{ nft_count }} pieces in the local catalog</span>
+                    <div><p class="eyebrow">03 / The generator</p><h2>Every NFT is a possible wallpaper.</h2></div>
+                    <span class="section-meta">Live artwork in, high-res PNG out</span>
                 </div>
-                <div class="nft-grid home-nft-grid">
-                    {% for nft in featured_nfts[:6] %}
-                        <article class="nft-card">
-                            <a class="nft-image" href="{{ url_for('explore_page', collection=nft.collection_slug) }}"><img src="{{ nft.image }}" alt="{{ nft.name }} from {{ nft.collection }}" loading="lazy"><span class="nft-hover">View collection ↗</span></a>
-                            <div class="nft-card-meta"><div><p>{{ nft.collection }}</p><h3>{{ nft.name }}</h3></div><form action="{{ url_for('catalog_generate') }}" method="post"><input type="hidden" name="nft_id" value="{{ nft.id }}"><input type="hidden" name="device" value="iphone_x"><button type="submit" class="icon-button" aria-label="Create wallpaper from {{ nft.name }}">＋</button></form></div>
-                        </article>
-                    {% endfor %}
+                <div class="callout-card">
+                    <span class="callout-mark">↗</span>
+                    <div><h3>Search a collection, choose a piece, make it yours.</h3><p>OpenSea discovery now powers the experience. Choose your screen, set the crop, add a fade or collection mark, and export.</p></div>
+                    <a class="button button-primary" href="{{ url_for('explore_page') }}">Browse OpenSea <span aria-hidden="true">→</span></a>
                 </div>
             </section>
         </main>
 
-        <footer class="site-footer container"><span>Meta Kabegami</span><span>Made for screens, not marketplaces.</span><a href="{{ url_for('explore_page') }}">Explore the shelf ↗</a></footer>
+        <footer class="site-footer container"><span>Meta Kabegami</span><span>Live collections, made personal.</span><a href="{{ url_for('explore_page') }}">Explore OpenSea ↗</a></footer>
     </div>
 
     <div class="loading-overlay" id="generate-screen" hidden aria-live="polite">
@@ -155,7 +164,10 @@
         const customSize = document.getElementById('custom-size');
         const form = document.getElementById('create-form');
         const overlay = document.getElementById('generate-screen');
+        const artScale = document.getElementById('art_scale');
+        const artScaleValue = document.getElementById('art-scale-value');
         device.addEventListener('change', () => { customSize.hidden = device.value !== 'custom'; });
+        artScale.addEventListener('input', () => { artScaleValue.value = `${artScale.value}%`; artScaleValue.textContent = `${artScale.value}%`; });
         form.addEventListener('submit', () => { overlay.hidden = false; });
     </script>
 </body>

@@ -3,8 +3,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Explore local and live OpenSea NFT collections with Meta Kabegami.">
-    <title>Explore — Meta Kabegami</title>
+    <meta name="description" content="Explore live OpenSea NFT collections and turn them into wallpapers with Meta Kabegami.">
+    <title>Explore OpenSea — Meta Kabegami</title>
     <link rel="icon" href="{{ url_for('static', filename='images/logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,32 +17,20 @@
         <main class="explore-page container">
             <section class="explore-hero">
                 <div>
-                    <p class="eyebrow"><span class="eyebrow-dot"></span> {{ 'OpenSea live' if source == 'opensea' else 'The local shelf' }}</p>
-                    <h1>{{ 'Search the live marketplace.' if source == 'opensea' else 'Explore the collection.' }}</h1>
-                    <p class="hero-lede">{% if source == 'opensea' %}Search collections and NFTs across OpenSea, then turn a result into a wallpaper in one click.{% else %}Browse every NFT currently bundled with Meta Kabegami, then turn any piece into a wallpaper in one click.{% endif %}</p>
+                    <p class="eyebrow"><span class="eyebrow-dot"></span> OpenSea live</p>
+                    <h1>{{ ('Browse ' ~ live_collection_name ~ '.') if live_collection_name else 'Search the live marketplace.' }}</h1>
+                    <p class="hero-lede">Search live collections and NFTs across OpenSea, then turn a result into a wallpaper in one click.</p>
                 </div>
-                <div class="explore-count"><strong>{{ live_results|length if source == 'opensea' else total_results }}</strong><span>results in view</span></div>
-            </section>
-
-            <section class="source-panel" aria-labelledby="source-title">
-                <div class="source-copy">
-                    <p class="eyebrow">01 / Source</p>
-                    <h2 id="source-title">Choose where to browse.</h2>
-                    <p>Keep it local for instant previews, or switch to OpenSea for live collections and NFT listings.</p>
-                </div>
-                <div class="source-switch" aria-label="Catalog source">
-                    <a class="source-option {{ 'is-active' if source != 'opensea' else '' }}" href="{{ url_for('explore_page', q=query, sort=sort) }}"><strong>Local shelf</strong><span>Bundled previews</span></a>
-                    <a class="source-option {{ 'is-active' if source == 'opensea' else '' }}" href="{{ url_for('explore_page', source='opensea') }}"><strong>OpenSea live</strong><span>{% if opensea_configured %}Live marketplace{% else %}API key needed{% endif %}</span></a>
-                </div>
+                <div class="explore-count"><strong>{{ live_results|length }}</strong><span>results in view</span></div>
             </section>
 
             <section class="explore-recipe" id="wallpaper-options" aria-labelledby="recipe-title">
                 <div class="explore-recipe-heading">
                     <div>
-                        <p class="eyebrow">02 / Output</p>
+                        <p class="eyebrow">01 / Output</p>
                         <h2 id="recipe-title">Set the wallpaper recipe.</h2>
                     </div>
-                    <p>These settings follow you into every local and OpenSea NFT action below.</p>
+                    <p>These settings follow you into every OpenSea NFT action below.</p>
                 </div>
                 <div class="explore-recipe-grid">
                     <div class="field-group">
@@ -61,44 +49,29 @@
                             <option value="none">None · full image</option>
                         </select>
                     </div>
+                    <div class="field-group scale-field">
+                        <label class="field-label" for="explore-scale">Artwork scale <output id="explore-scale-value">100%</output></label>
+                        <input type="range" id="explore-scale" data-recipe-option="art_scale" min="60" max="140" step="5" value="100">
+                        <p class="range-hint">60% smaller · 140% closer</p>
+                    </div>
                     <div class="field-group explore-logo-field">
                         <label class="field-label" for="explore-logo">Collection logo <span>Image URL</span></label>
-                        <input type="url" id="explore-logo" data-recipe-option="logo_url" placeholder="https://.../logo.png" autocomplete="url">
+                        <input type="url" id="explore-logo" data-recipe-option="logo_url" value="{{ live_collection_logo }}" placeholder="https://.../logo.png" autocomplete="url">
                     </div>
                 </div>
                 <div class="explore-custom-size" id="explore-custom-size" hidden>
                     <div class="field-group"><label class="field-label" for="explore-width">Custom width</label><input type="number" id="explore-width" data-recipe-option="custom_width" min="200" max="5000" placeholder="1125"></div>
                     <div class="field-group"><label class="field-label" for="explore-height">Custom height</label><input type="number" id="explore-height" data-recipe-option="custom_height" min="200" max="8000" placeholder="2436"></div>
                 </div>
-                <p class="recipe-hint" id="recipe-hint">Every “Make wallpaper” button uses this recipe. The logo sits in a small glass plate at the top-right.</p>
+                <p class="recipe-hint" id="recipe-hint">OpenSea’s collection mark is preloaded when available. You can replace it with any public image URL.</p>
             </section>
 
-            <section class="catalog-toolbar" aria-label="Catalog filters">
-                {% if source == 'opensea' %}
-                    <div class="live-context">{% if live_collection %}<a class="text-link" href="{{ url_for('explore_page', source='opensea') }}">← All OpenSea collections</a>{% else %}<span>Browse collections or search the marketplace</span>{% endif %}</div>
-                {% else %}
-                    <div class="collection-tabs">
-                        <a class="filter-pill {{ 'is-active' if active_collection == 'all' else '' }}" href="{{ url_for('explore_page', q=query, sort=sort) }}">All work <span>{{ nft_count }}</span></a>
-                        {% for collection in collections %}
-                            <a class="filter-pill {{ 'is-active' if active_collection == collection.slug else '' }}" href="{{ url_for('explore_page', collection=collection.slug, q=query, sort=sort) }}">{{ collection.name }} <span>{{ featured_nfts|selectattr('collection_slug', 'equalto', collection.slug)|list|length }}</span></a>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+            <section class="catalog-toolbar" aria-label="OpenSea filters">
+                <div class="live-context">{% if live_collection %}<a class="text-link" href="{{ url_for('explore_page') }}">← All OpenSea collections</a>{% else %}<span>Browse collections or search the marketplace</span>{% endif %}</div>
                 <form class="catalog-search" action="{{ url_for('explore_page') }}" method="get">
-                    <input type="hidden" name="source" value="{{ source }}">
-                    {% if live_collection %}<input type="hidden" name="collection_slug" value="{{ live_collection }}">{% endif %}
-                    {% if source != 'opensea' %}<input type="hidden" name="collection" value="{{ active_collection }}">{% endif %}
-                    <label class="sr-only" for="catalog-query">{{ 'Search OpenSea' if source == 'opensea' else 'Search NFTs' }}</label>
-                    <input id="catalog-query" name="q" value="{{ query }}" placeholder="{{ 'Search OpenSea' if source == 'opensea' else 'Search the shelf' }}" type="search">
+                    <label class="sr-only" for="catalog-query">Search OpenSea</label>
+                    <input id="catalog-query" name="q" value="{{ query }}" placeholder="Search OpenSea" type="search">
                     <button type="submit" aria-label="Search">↗</button>
-                    {% if source != 'opensea' %}
-                        <label class="sr-only" for="catalog-sort">Sort results</label>
-                        <select id="catalog-sort" name="sort" onchange="this.form.submit()">
-                            <option value="featured" {{ 'selected' if sort == 'featured' else '' }}>Featured</option>
-                            <option value="a-z" {{ 'selected' if sort == 'a-z' else '' }}>A to Z</option>
-                            <option value="collection" {{ 'selected' if sort == 'collection' else '' }}>By collection</option>
-                        </select>
-                    {% endif %}
                 </form>
             </section>
 
@@ -106,45 +79,43 @@
                 {% if messages %}<div class="flash-stack explore-flash" role="alert">{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}
             {% endwith %}
 
-            {% if source == 'opensea' %}
-                {% if live_error %}
-                    <section class="empty-state"><span class="empty-mark">◎</span><h2>OpenSea needs a key.</h2><p>{{ live_error }}</p><a class="button button-secondary" href="{{ url_for('explore_page') }}">Use local shelf</a></section>
-                {% elif live_results %}
-                    <section class="catalog-grid live-grid" aria-live="polite">
-                        {% for result in live_results %}
-                            <article class="catalog-card">
-                                <a class="catalog-image" href="{% if result.kind == 'collection' %}{{ url_for('explore_page', source='opensea', collection_slug=result.collection_slug) }}{% else %}{{ result.source_url }}{% endif %}" {% if result.kind == 'nft' %}target="_blank" rel="noreferrer"{% endif %}>
-                                    <img src="{{ result.image }}" alt="{{ result.name }} from {{ result.collection }}" loading="lazy"><span class="catalog-number">{{ '%02d'|format(loop.index) }}</span>
-                                </a>
-                                <div class="catalog-meta">
-                                    <div><p>{{ result.collection }}</p><h2>{{ result.name }}</h2></div>
-                                    {% if result.kind == 'collection' %}
-                                        <a class="small-button" href="{{ url_for('explore_page', source='opensea', collection_slug=result.collection_slug) }}">View NFTs <span aria-hidden="true">→</span></a>
-                                    {% else %}
-                                        <form class="wallpaper-form" action="{{ url_for('marketplace_generate') }}" method="post"><input type="hidden" name="image_url" value="{{ result.image_url }}"><input type="hidden" name="title" value="{{ result.name }}"><input type="hidden" name="source_url" value="{{ result.source_url }}"><input type="hidden" name="device" class="recipe-device" value="iphone_x"><input type="hidden" name="custom_width" class="recipe-custom-width"><input type="hidden" name="custom_height" class="recipe-custom-height"><input type="hidden" name="gradient_style" class="recipe-gradient" value="soft"><input type="hidden" name="logo_url" class="recipe-logo"><button type="submit" class="small-button">Make wallpaper <span aria-hidden="true">→</span></button></form>
-                                    {% endif %}
-                                </div>
-                            </article>
-                        {% endfor %}
-                    </section>
-                    {% if live_next %}<div class="pagination-link"><a class="button button-secondary" href="{{ url_for('explore_page', source='opensea', q=query, collection_slug=live_collection, next=live_next) }}">Load more <span aria-hidden="true">↓</span></a></div>{% endif %}
-                {% else %}
-                    <section class="empty-state"><span class="empty-mark">∅</span><h2>No results yet.</h2><p>Search for a collection or NFT, or browse the first page of OpenSea collections.</p></section>
-                {% endif %}
-            {% elif nfts %}
-                <section class="catalog-grid" aria-live="polite">
-                    {% for nft in nfts %}
+            {% if live_error %}
+                <section class="empty-state"><span class="empty-mark">◎</span><h2>OpenSea needs a moment.</h2><p>{{ live_error }}</p><a class="button button-secondary" href="{{ url_for('explore_page') }}">Try again</a></section>
+            {% elif live_results %}
+                <section class="catalog-grid live-grid" aria-live="polite">
+                    {% for result in live_results %}
                         <article class="catalog-card">
-                            <a class="catalog-image" href="{{ url_for('explore_page', collection=nft.collection_slug) }}"><img src="{{ nft.image }}" alt="{{ nft.name }} from {{ nft.collection }}" loading="lazy"><span class="catalog-number">{{ '%02d'|format(loop.index) }}</span></a>
-                            <div class="catalog-meta"><div><p>{{ nft.collection }}</p><h2>{{ nft.name }}</h2></div><form class="wallpaper-form" action="{{ url_for('catalog_generate') }}" method="post"><input type="hidden" name="nft_id" value="{{ nft.id }}"><input type="hidden" name="device" class="recipe-device" value="iphone_x"><input type="hidden" name="custom_width" class="recipe-custom-width"><input type="hidden" name="custom_height" class="recipe-custom-height"><input type="hidden" name="gradient_style" class="recipe-gradient" value="soft"><input type="hidden" name="logo_url" class="recipe-logo"><button type="submit" class="small-button">Make wallpaper <span aria-hidden="true">→</span></button></form></div>
+                            <a class="catalog-image" href="{% if result.kind == 'collection' %}{{ url_for('explore_page', collection_slug=result.collection_slug) }}{% else %}{{ result.source_url }}{% endif %}" {% if result.kind == 'nft' %}target="_blank" rel="noreferrer"{% endif %}>
+                                <img src="{{ result.image }}" alt="{{ result.name }} from {{ result.collection }}" loading="lazy"><span class="catalog-number">{{ '%02d'|format(loop.index) }}</span>
+                            </a>
+                            <div class="catalog-meta">
+                                <div><p>{{ result.collection }}</p><h2>{{ result.name }}</h2></div>
+                                {% if result.kind == 'collection' %}
+                                    <a class="small-button" href="{{ url_for('explore_page', collection_slug=result.collection_slug) }}">View NFTs <span aria-hidden="true">→</span></a>
+                                {% else %}
+                                    <form class="wallpaper-form" action="{{ url_for('marketplace_generate') }}" method="post">
+                                        <input type="hidden" name="image_url" value="{{ result.image_url }}">
+                                        <input type="hidden" name="title" value="{{ result.name }}">
+                                        <input type="hidden" name="source_url" value="{{ result.source_url }}">
+                                        <input type="hidden" name="device" class="recipe-device" value="iphone_x">
+                                        <input type="hidden" name="custom_width" class="recipe-custom-width">
+                                        <input type="hidden" name="custom_height" class="recipe-custom-height">
+                                        <input type="hidden" name="gradient_style" class="recipe-gradient" value="soft">
+                                        <input type="hidden" name="art_scale" class="recipe-art-scale" value="100">
+                                        <input type="hidden" name="logo_url" class="recipe-logo" value="{{ live_collection_logo }}">
+                                        <button type="submit" class="small-button">Make wallpaper <span aria-hidden="true">→</span></button>
+                                    </form>
+                                {% endif %}
+                            </div>
                         </article>
                     {% endfor %}
                 </section>
+                {% if live_next %}<div class="pagination-link"><a class="button button-secondary" href="{{ url_for('explore_page', q=query, collection_slug=live_collection, next=live_next) }}">Load more <span aria-hidden="true">↓</span></a></div>{% endif %}
             {% else %}
-                <section class="empty-state"><span class="empty-mark">∅</span><h2>Nothing on this shelf yet.</h2><p>Try a different search term or browse all work.</p><a class="button button-secondary" href="{{ url_for('explore_page') }}">Reset filters</a></section>
+                <section class="empty-state"><span class="empty-mark">∅</span><h2>No results yet.</h2><p>Search for a collection or NFT, or browse OpenSea’s first page of collections.</p></section>
             {% endif %}
         </main>
-        <footer class="site-footer container"><span>Meta Kabegami</span><span>Every piece is a possible wallpaper.</span><a href="{{ url_for('main_page') }}#generator">Create your own ↗</a></footer>
+        <footer class="site-footer container"><span>Meta Kabegami</span><span>Live collections, made personal.</span><a href="{{ url_for('main_page') }}#generator">Create from a link ↗</a></footer>
     </div>
 
     <div class="loading-overlay" id="explore-generate-screen" hidden aria-live="polite">
@@ -152,25 +123,29 @@
     </div>
 
     <script>
-        const recipePanel = document.getElementById('wallpaper-options');
         const recipeOptions = {
             device: document.getElementById('explore-device'),
             custom_width: document.getElementById('explore-width'),
             custom_height: document.getElementById('explore-height'),
             gradient_style: document.getElementById('explore-gradient'),
+            art_scale: document.getElementById('explore-scale'),
             logo_url: document.getElementById('explore-logo')
         };
         const customSize = document.getElementById('explore-custom-size');
+        const scaleOutput = document.getElementById('explore-scale-value');
         const loadingScreen = document.getElementById('explore-generate-screen');
 
         function syncRecipe() {
             const values = Object.fromEntries(Object.entries(recipeOptions).map(([key, input]) => [key, input.value]));
             customSize.hidden = values.device !== 'custom';
+            scaleOutput.value = `${values.art_scale}%`;
+            scaleOutput.textContent = `${values.art_scale}%`;
             document.querySelectorAll('.wallpaper-form').forEach((form) => {
                 form.querySelector('.recipe-device').value = values.device;
                 form.querySelector('.recipe-custom-width').value = values.custom_width;
                 form.querySelector('.recipe-custom-height').value = values.custom_height;
                 form.querySelector('.recipe-gradient').value = values.gradient_style;
+                form.querySelector('.recipe-art-scale').value = values.art_scale;
                 form.querySelector('.recipe-logo').value = values.logo_url;
             });
         }

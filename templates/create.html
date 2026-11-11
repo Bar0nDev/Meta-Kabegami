@@ -32,13 +32,13 @@
                         {% if messages %}<div class="flash-stack" role="alert">{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}
                     {% endwith %}
                     <div class="source-card"><div class="source-image"><img src="{{ img_src }}" alt="{{ art_title }} artwork"></div><div><p class="eyebrow">Source artwork</p><h2>{{ art_title }}</h2><a href="{{ source_url }}" target="_blank" rel="noreferrer">Open original ↗</a></div></div>
-                    <div class="details-card"><div class="details-card-header"><p class="eyebrow">Export details</p><span class="ready-badge"><span></span> Ready</span></div><dl class="details-list"><div><dt>Device</dt><dd>{{ device_type.replace('_', ' ').title() }}</dd></div><div><dt>Resolution</dt><dd>{{ dimensions }}</dd></div><div><dt>Top fade</dt><dd>{{ gradient_style.title() }}</dd></div><div><dt>Collection mark</dt><dd>{{ 'Added' if logo_url else 'None' }}</dd></div><div><dt>Format</dt><dd>PNG</dd></div><div><dt>Quality</dt><dd>High definition</dd></div></dl></div>
+                    <div class="details-card"><div class="details-card-header"><p class="eyebrow">Export details</p><span class="ready-badge"><span></span> Ready</span></div><dl class="details-list"><div><dt>Device</dt><dd>{{ device_type.replace('_', ' ').title() }}</dd></div><div><dt>Resolution</dt><dd>{{ dimensions }}</dd></div><div><dt>Artwork scale</dt><dd>{{ art_scale }}%</dd></div><div><dt>Top fade</dt><dd>{{ gradient_style.title() }}</dd></div><div><dt>Collection mark</dt><dd>{{ 'Added' if logo_url else 'None' }}</dd></div><div><dt>Format</dt><dd>PNG</dd></div><div><dt>Quality</dt><dd>High definition</dd></div></dl></div>
                     <div class="result-actions"><a class="button button-primary" href="{{ url_for('download_page') }}"><span>Download wallpaper</span><span aria-hidden="true">↓</span></a><a class="button button-secondary" href="{{ url_for('main_page') }}#generator">Create another <span aria-hidden="true">↗</span></a></div>
                     <p class="result-note">Your image is generated locally for this session. Nothing is added to a wallet or marketplace.</p>
                 </aside>
             </section>
         </main>
-        <footer class="site-footer container"><span>Meta Kabegami</span><span>Made for screens, not marketplaces.</span><a href="{{ url_for('explore_page') }}">Back to the shelf ↗</a></footer>
+        <footer class="site-footer container"><span>Meta Kabegami</span><span>Made for screens, not marketplaces.</span><a href="{{ url_for('explore_page') }}">Back to OpenSea ↗</a></footer>
     </div>
 </body>
 </html>

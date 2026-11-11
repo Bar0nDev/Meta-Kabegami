@@ -61,59 +61,18 @@ GRADIENT_STYLES = {
     'strong': 0.55,
 }
 
-
-# The local catalog gives the site a real discovery layer without making the
-# wallpaper generator dependent on a marketplace API being available.
-COLLECTIONS = [
-    {
-        'slug': 'kitaro',
-        'name': 'Kitaro',
-        'eyebrow': 'Digital portrait study',
-        'description': 'Glitched portraits with a quiet, cinematic energy.',
-        'cover': '/static/images/NFT-images/Kitaro-1.png',
-    },
-    {
-        'slug': 'bayc',
-        'name': 'BAYC',
-        'eyebrow': 'Character archive',
-        'description': 'Iconic expressions, cropped for your lock screen.',
-        'cover': '/static/images/NFT-images/BAYC-1.png',
-    },
-    {
-        'slug': 'azuki',
-        'name': 'Azuki',
-        'eyebrow': 'Anime-inspired avatars',
-        'description': 'Colorful character studies built for vertical screens.',
-        'cover': '/static/images/NFT-images/Azuki-1.png',
-    },
-]
-
-NFT_CATALOG = [
-    {'id': 'kitaro-1', 'name': 'Kitaro 01', 'collection': 'Kitaro', 'collection_slug': 'kitaro', 'image': '/static/images/NFT-images/Kitaro-1.png'},
-    {'id': 'kitaro-2', 'name': 'Kitaro 02', 'collection': 'Kitaro', 'collection_slug': 'kitaro', 'image': '/static/images/NFT-images/Kitaro-2.png'},
-    {'id': 'kitaro-3', 'name': 'Kitaro 03', 'collection': 'Kitaro', 'collection_slug': 'kitaro', 'image': '/static/images/NFT-images/Kitaro-3.png'},
-    {'id': 'kitaro-4', 'name': 'Kitaro 04', 'collection': 'Kitaro', 'collection_slug': 'kitaro', 'image': '/static/images/NFT-images/Kitaro-4.png'},
-    {'id': 'bayc-1', 'name': 'BAYC 01', 'collection': 'BAYC', 'collection_slug': 'bayc', 'image': '/static/images/NFT-images/BAYC-1.png'},
-    {'id': 'bayc-2', 'name': 'BAYC 02', 'collection': 'BAYC', 'collection_slug': 'bayc', 'image': '/static/images/NFT-images/BAYC-2.png'},
-    {'id': 'bayc-3', 'name': 'BAYC 03', 'collection': 'BAYC', 'collection_slug': 'bayc', 'image': '/static/images/NFT-images/BAYC-3.png'},
-    {'id': 'azuki-1', 'name': 'Azuki 01', 'collection': 'Azuki', 'collection_slug': 'azuki', 'image': '/static/images/NFT-images/Azuki-1.png'},
-    {'id': 'azuki-2', 'name': 'Azuki 02', 'collection': 'Azuki', 'collection_slug': 'azuki', 'image': '/static/images/NFT-images/Azuki-2.png'},
-    {'id': 'azuki-3', 'name': 'Azuki 03', 'collection': 'Azuki', 'collection_slug': 'azuki', 'image': '/static/images/NFT-images/Azuki-3.png'},
-]
-
-
 def catalog_context():
-    return {
-        'collections': COLLECTIONS,
-        'featured_nfts': NFT_CATALOG,
-        'collection_count': len(COLLECTIONS),
-        'nft_count': len(NFT_CATALOG),
-        'device_options': DEVICE_OPTIONS,
-    }
+    return {'device_options': DEVICE_OPTIONS}
 
 
 def render_home():
-    return render_template('index.html', **catalog_context())
+    live_collections, _ = list_opensea_collections()
+    return render_template(
+        'index.html',
+        **catalog_context(),
+        live_collections=(live_collections or [])[:3],
+        opensea_configured=bool(OPENSEA_API_KEY),
+    )
 
 
 def opensea_get(path, params=None):
@@ -211,6 +170,13 @@ def list_opensea_collections(next_token=''):
     return [item for item in results if item and item.get('image')], payload.get('next')
 
 
+def get_opensea_collection(slug):
+    payload = opensea_get(f'/collections/{quote(slug, safe="")}')
+    if not payload:
+        return None
+    return normalize_opensea_collection(payload)
+
+
 def list_opensea_collection_nfts(slug, next_token=''):
     params = [('limit', 50)]
     if next_token:
@@ -241,6 +207,14 @@ def get_device_dimensions(device_type, custom_width=None, custom_height=None):
     return DEVICE_SIZES.get(device_type, (1125, 2436))
 
 
+def get_art_scale(value):
+    try:
+        scale = int(value)
+    except (TypeError, ValueError):
+        return 100
+    return max(60, min(140, scale))
+
+
 def load_logo_image(logo_url):
     if not logo_url:
         return None
@@ -260,7 +234,7 @@ def load_logo_image(logo_url):
         return logo.convert('RGBA')
 
 
-def create_wallpaper(img, target_width, target_height, gradient_style='soft', collection_logo=None):
+def create_wallpaper(img, target_width, target_height, gradient_style='soft', collection_logo=None, art_scale=100):
     pix = img.load()
     palette_rgb = pix[30, 1] if img.width > 30 else pix[0, 0]
 
@@ -273,11 +247,16 @@ def create_wallpaper(img, target_width, target_height, gradient_style='soft', co
     main_img_height = int(target_height * 0.7)
     gradient_height = target_height - main_img_height
 
-    resized_img = ImageOps.fit(cropped_img, size=(target_width, main_img_height))
+    scale = get_art_scale(art_scale) / 100
+    art_width = max(1, int(target_width * scale))
+    art_height = max(1, int(main_img_height * scale))
+    resized_img = ImageOps.fit(cropped_img, size=(art_width, art_height))
 
     final_img = Image.new('RGB', (target_width, target_height), color=palette_rgb)
 
-    final_img.paste(resized_img, (0, gradient_height))
+    art_x = (target_width - art_width) // 2
+    art_y = gradient_height + (main_img_height - art_height) // 2
+    final_img.paste(resized_img, (art_x, art_y))
 
     gradient_strength = GRADIENT_STYLES.get(gradient_style, GRADIENT_STYLES['soft'])
     if gradient_strength > 0:
@@ -325,13 +304,13 @@ def create_wallpaper(img, target_width, target_height, gradient_style='soft', co
     return final_img
 
 
-def save_wallpaper(img, target_width, target_height, gradient_style='soft', logo_url=''):
+def save_wallpaper(img, target_width, target_height, gradient_style='soft', logo_url='', art_scale=100):
     collection_logo = load_logo_image(logo_url)
     tmp_folder = os.path.join(app.root_path, 'tmp')
     os.makedirs(tmp_folder, exist_ok=True)
     rgb_image = img.convert('RGB')
     rgb_image.save(os.path.join(tmp_folder, 'target_img.png'))
-    final_img = create_wallpaper(rgb_image, target_width, target_height, gradient_style, collection_logo)
+    final_img = create_wallpaper(rgb_image, target_width, target_height, gradient_style, collection_logo, art_scale)
     final_img.save(os.path.join(tmp_folder, 'image_converted.png'))
 
 
@@ -354,6 +333,7 @@ def main_page():
         custom_height = request.form.get('custom_height')
         gradient_style = request.form.get('gradient_style', 'soft')
         logo_url = request.form.get('logo_url', '').strip()
+        art_scale = get_art_scale(request.form.get('art_scale', 100))
 
         target_width, target_height = get_device_dimensions(device_type, custom_width, custom_height)
 
@@ -379,7 +359,7 @@ def main_page():
                         raise ValueError('The NFT image could not be downloaded.')
                     img = Image.open(BytesIO(img_response.content))
 
-                    save_wallpaper(img, target_width, target_height, gradient_style, logo_url)
+                    save_wallpaper(img, target_width, target_height, gradient_style, logo_url, art_scale)
 
                     session['title'] = title
                     session['img_src'] = img_src
@@ -388,6 +368,7 @@ def main_page():
                     session['dimensions'] = f"{target_width} × {target_height}"
                     session['gradient_style'] = gradient_style
                     session['logo_url'] = logo_url
+                    session['art_scale'] = art_scale
 
                     return redirect('/create')
                 else:
@@ -405,95 +386,43 @@ def main_page():
 @app.route('/explore')
 def explore_page():
     query = request.args.get('q', '').strip()
-    active_collection = request.args.get('collection', 'all').strip().lower() or 'all'
-    sort = request.args.get('sort', 'featured').strip().lower() or 'featured'
-    source = request.args.get('source', 'local').strip().lower() or 'local'
     live_collection = request.args.get('collection_slug', '').strip()
     next_token = request.args.get('next', '').strip()
-
-    nfts = NFT_CATALOG[:]
-    if active_collection != 'all':
-        nfts = [nft for nft in nfts if nft['collection_slug'] == active_collection]
-    if query:
-        needle = query.lower()
-        nfts = [
-            nft for nft in nfts
-            if needle in nft['name'].lower() or needle in nft['collection'].lower()
-        ]
-    if sort == 'a-z':
-        nfts.sort(key=lambda nft: nft['name'])
-    elif sort == 'collection':
-        nfts.sort(key=lambda nft: (nft['collection'], nft['name']))
 
     live_results = []
     live_next = None
     live_error = None
-    if source == 'opensea':
-        if not OPENSEA_API_KEY:
-            live_error = 'Add OPENSEA_API_KEY to .env to enable live OpenSea discovery.'
-        elif live_collection:
-            live_results, live_next = list_opensea_collection_nfts(live_collection, next_token)
-        elif query:
-            live_results, live_next = search_opensea(query, next_token)
-        else:
-            live_results, live_next = list_opensea_collections(next_token)
+    live_collection_logo = ''
+    live_collection_name = ''
+    if not OPENSEA_API_KEY:
+        live_error = 'Add OPENSEA_API_KEY to .env to enable live OpenSea discovery.'
+    elif live_collection:
+        collection = get_opensea_collection(live_collection)
+        if collection:
+            live_collection_logo = collection['image'] if not collection['image'].startswith('/static/') else ''
+            live_collection_name = collection['name']
+        live_results, live_next = list_opensea_collection_nfts(live_collection, next_token)
+    elif query:
+        live_results, live_next = search_opensea(query, next_token)
+    else:
+        live_results, live_next = list_opensea_collections(next_token)
 
-        if live_results is None:
-            live_error = 'OpenSea is unavailable right now. Try again in a moment.'
-            live_results = []
+    if live_results is None:
+        live_error = 'OpenSea is unavailable right now. Try again in a moment.'
+        live_results = []
 
     return render_template(
         'explore.html',
         **catalog_context(),
-        nfts=nfts,
-        active_collection=active_collection,
         query=query,
-        sort=sort,
-        total_results=len(nfts),
-        source=source,
         live_results=live_results,
         live_next=live_next,
         live_collection=live_collection,
+        live_collection_logo=live_collection_logo,
+        live_collection_name=live_collection_name,
         live_error=live_error,
         opensea_configured=bool(OPENSEA_API_KEY),
     )
-
-
-@app.route('/catalog/generate', methods=['POST'])
-def catalog_generate():
-    nft_id = request.form.get('nft_id', '').strip()
-    nft = next((item for item in NFT_CATALOG if item['id'] == nft_id), None)
-    if nft is None:
-        flash('That catalog item is no longer available. Choose another NFT.', 'error')
-        return redirect(url_for('explore_page'))
-
-    device_type = request.form.get('device', 'iphone_x')
-    custom_width = request.form.get('custom_width')
-    custom_height = request.form.get('custom_height')
-    gradient_style = request.form.get('gradient_style', 'soft')
-    logo_url = request.form.get('logo_url', '').strip()
-    target_width, target_height = get_device_dimensions(device_type, custom_width, custom_height)
-    if target_width is None or target_height is None:
-        flash('Invalid device dimensions. Please check your custom size values.', 'error')
-        return redirect(url_for('explore_page'))
-
-    image_path = os.path.join(app.root_path, nft['image'].lstrip('/').replace('/', os.sep))
-    try:
-        os.makedirs(os.path.join(app.root_path, 'tmp'), exist_ok=True)
-        with Image.open(image_path) as source_image:
-            save_wallpaper(source_image, target_width, target_height, gradient_style, logo_url)
-
-        session['title'] = nft['name']
-        session['img_src'] = nft['image']
-        session['source_url'] = url_for('explore_page', collection=nft['collection_slug'], _external=True)
-        session['device_type'] = device_type
-        session['dimensions'] = f"{target_width} × {target_height}"
-        session['gradient_style'] = gradient_style
-        session['logo_url'] = logo_url
-        return redirect(url_for('create_page'))
-    except Exception as error:
-        flash(f'Unable to prepare this NFT: {error}', 'error')
-        return redirect(url_for('explore_page'))
 
 
 @app.route('/marketplace/generate', methods=['POST'])
@@ -506,14 +435,15 @@ def marketplace_generate():
     custom_height = request.form.get('custom_height')
     gradient_style = request.form.get('gradient_style', 'soft')
     logo_url = request.form.get('logo_url', '').strip()
+    art_scale = get_art_scale(request.form.get('art_scale', 100))
     target_width, target_height = get_device_dimensions(device_type, custom_width, custom_height)
 
     if not image_url.startswith(('http://', 'https://')):
         flash('This marketplace item does not have a usable image URL.', 'error')
-        return redirect(url_for('explore_page', source='opensea'))
+        return redirect(url_for('explore_page'))
     if target_width is None or target_height is None:
         flash('Invalid device dimensions. Please check your custom size values.', 'error')
-        return redirect(url_for('explore_page', source='opensea'))
+        return redirect(url_for('explore_page'))
 
     try:
         image_response = requests.get(image_url, timeout=15)
@@ -522,7 +452,7 @@ def marketplace_generate():
 
         os.makedirs(os.path.join(app.root_path, 'tmp'), exist_ok=True)
         with Image.open(BytesIO(image_response.content)) as source_image:
-            save_wallpaper(source_image, target_width, target_height, gradient_style, logo_url)
+            save_wallpaper(source_image, target_width, target_height, gradient_style, logo_url, art_scale)
 
         session['title'] = title or 'OpenSea NFT'
         session['img_src'] = image_url
@@ -531,10 +461,11 @@ def marketplace_generate():
         session['dimensions'] = f"{target_width} × {target_height}"
         session['gradient_style'] = gradient_style
         session['logo_url'] = logo_url
+        session['art_scale'] = art_scale
         return redirect(url_for('create_page'))
     except Exception as error:
         flash(f'Unable to prepare this marketplace NFT: {error}', 'error')
-        return redirect(url_for('explore_page', source='opensea'))
+        return redirect(url_for('explore_page'))
 
 
 @app.route('/image/<filename>')
@@ -557,6 +488,7 @@ def create_page():
                                dimensions=session.get('dimensions', 'Unknown'),
                                gradient_style=session.get('gradient_style', 'soft'),
                                logo_url=session.get('logo_url', ''),
+                               art_scale=session.get('art_scale', 100),
                                time_now=datetime.now().timestamp())
 
 
